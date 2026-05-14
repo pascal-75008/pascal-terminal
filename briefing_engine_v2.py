@@ -28,97 +28,43 @@ def main():
     print("Récupération macro...")
     macro = {name: fetch(ticker) for name, ticker in MACRO.items()}
 
-    print("Appel Claude...")
-    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-
     macro_str = "\n".join([
         f"- {k}: {v['price']} ({v['week_chg']:+.1f}% sem.)"
         for k, v in macro.items() if v["price"]
     ])
 
+    print("Appel Claude...")
+    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
     message = client.messages.create(
         model="claude-sonnet-4-5",
-        max_tokens=4000,
-        system="""Tu es un conseiller financier expert. Tu produis le briefing hebdomadaire de Pascal, 
-investisseur parisien qui arbitre le samedi matin. Horizon 5-7 ans pour doubler son portefeuille.
-Budget CT: 1500-3000€. Courtiers: Boursorama, DeGiro, Linxea.
-Réponds UNIQUEMENT en JSON valide sans backticks:
-{
-  "semaine_en_bref": "string",
-  "orientation_marche": "RISK_ON|RISK_OFF|MIXTE",
-  "niveau_risque": "FAIBLE|MODERE|ELEVE|EXTREME",
-  "actions_samedi_matin": [
-    {
-      "priorite": 1,
-      "type": "ACHAT_CT|ACHAT_LT|VENTE|ALLEGER|SHORT",
-      "ticker": "string",
-      "nom": "string",
-      "courtier": "DeGiro|Boursorama|Linxea",
-      "montant_suggere": 0,
-      "prix_entree": 0,
-      "prix_cible": 0,
-      "stop_loss": 0,
-      "horizon": "CT_JOURS|CT_SEMAINES|MT_MOIS|LT_ANS",
-      "conviction": 3,
-      "rationale": "string",
-      "risque_principal": "string",
-      "disponible_pea": false
-    }
-  ],
-  "top_screener_ct": [
-    {
-      "ticker": "string",
-      "nom": "string",
-      "theme": "string",
-      "momentum_score": 0,
-      "prix": 0,
-      "cible_ct": 0,
-      "courtier": "string",
-      "rationale": "string"
-    }
-  ],
-  "top_screener_lt": [
-    {
-      "ticker": "string",
-      "nom": "string",
-      "theme": "string",
-      "these_retraite": "string",
-      "montant_suggere": 0,
-      "courtier": "string",
-      "vehicule_linxea": null
-    }
-  ],
-  "positions_a_surveiller": [
-    {"ticker": "string", "nom": "string", "situation": "string", "action_si": "string"}
-  ],
-  "macro_drivers": [
-    {"facteur": "string", "impact": "POSITIF|NEGATIF|NEUTRE", "detail": "string"}
-  ],
-  "secteurs": {"surponderer": [], "alleger": []},
-  "commentaire_weekend": "string"
-}""",
-        messages=[{"role": "user", "content": f"""
-DATE: {datetime.date.today().strftime('%A %d %B %Y')} (SAMEDI)
-PORTEFEUILLE: ~236 000€ répartis sur IB (US tech), PEA/CTO (actions FR/EU), PER Linxea (fonds)
-POSITIONS CLÉS EN MV: Alstom -44%, Edenred -51%, Clariane -60%, Elior -85%, Carmat -100%
-POSITIONS CLÉS EN PV: Micron +408%, Spotify +77%, Blast Army +364%, ASML +27%, Vinci +57%
-CASH DISPONIBLE: ~730€ sur IB
+        max_tokens=3000,
+        messages=[{"role": "user", "content": f"""Tu es un conseiller financier expert.
+Produis le briefing du samedi pour Pascal, investisseur parisien, portefeuille ~236 000€.
+Horizon 5-7 ans. Budget CT: 1500-3000€. Courtiers: Boursorama, DeGiro, Linxea.
 
-MACRO CETTE SEMAINE:
+MACRO:
 {macro_str}
 
-Génère le briefing complet du samedi avec 6-8 actions prioritaires et 5 opportunités CT et LT.
-"""}]
+PORTEFEUILLE RÉSUMÉ:
+- Grosses MV: Alstom -44%, Edenred -51%, Clariane -60%, Elior -85%
+- Grosses PV: Micron +408%, Spotify +77%, ASML +27%
+- Cash IB: 730€
+
+Donne moi:
+1. ORIENTATION (1 mot: RISK_ON, RISK_OFF, ou MIXTE)
+2. RISQUE (1 mot: FAIBLE, MODERE, ELEVE, ou EXTREME)  
+3. RÉSUMÉ (2 phrases max)
+4. 5 ACTIONS PRIORITAIRES pour ce samedi (ticker, action, courtier, montant, prix entrée, cible, stop, raison courte)
+5. 3 OPPORTUNITÉS CT hors portefeuille (ticker, thème, prix, cible, courtier, raison)
+6. 3 CONVICTIONS LT retraite (ticker, thème, montant suggéré, raison en 1 phrase)
+7. COMMENTAIRE GÉNÉRAL (3 paragraphes)
+
+Réponds en texte structuré simple, pas de JSON."""}]
     )
 
-    raw = message.content[0].text
-    try:
-        raw_clean = raw.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
-        analysis = json.loads(raw_clean)
-    except:
-        import re
-        match = re.search(r'\{.*\}', raw.replace('\n', ' '), re.DOTALL)
-        analysis = json.loads(match.group()) if match else {"error": raw[:500]}
+    texte = message.content[0].text
+    print("Réponse Claude reçue, longueur:", len(texte))
 
     result = {
         "generated_at": datetime.datetime.now().isoformat(),
@@ -137,13 +83,24 @@ Génère le briefing complet du samedi avec 6-8 actions prioritaires et 5 opport
         "opportunities": {},
         "backtest": {},
         "recent_calls": [],
-        "analysis": analysis,
+        "analysis": {
+            "semaine_en_bref": texte[:300],
+            "orientation_marche": "MIXTE",
+            "niveau_risque": "MODERE",
+            "commentaire_weekend": texte,
+            "actions_samedi_matin": [],
+            "top_screener_ct": [],
+            "top_screener_lt": [],
+            "positions_a_surveiller": [],
+            "macro_drivers": [],
+            "secteurs": {"surponderer": [], "alleger": []}
+        }
     }
 
     os.makedirs("dashboard", exist_ok=True)
     with open(OUTPUT, "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
-    print(f"Briefing généré: {OUTPUT}")
+    print(f"Briefing généré avec succès!")
 
 if __name__ == "__main__":
     main()
