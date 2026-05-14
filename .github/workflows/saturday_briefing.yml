@@ -24,12 +24,7 @@ jobs:
       - name: Run briefing
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: |
-          python briefing_engine_v2.py
-         
-      - name: Copy to dashboard
-        run: |
-          cp dashboard/latest_briefing.json dashboard/latest_briefing.json || true
+        run: python briefing_engine_v2.py
 
       - name: Commit
         run: |
