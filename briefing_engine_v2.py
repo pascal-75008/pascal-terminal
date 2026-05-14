@@ -84,4 +84,65 @@ Réponds UNIQUEMENT en JSON valide sans backticks:
       "theme": "string",
       "these_retraite": "string",
       "montant_suggere": 0,
-      "courtier": "s
+      "courtier": "string",
+      "vehicule_linxea": null
+    }
+  ],
+  "positions_a_surveiller": [
+    {"ticker": "string", "nom": "string", "situation": "string", "action_si": "string"}
+  ],
+  "macro_drivers": [
+    {"facteur": "string", "impact": "POSITIF|NEGATIF|NEUTRE", "detail": "string"}
+  ],
+  "secteurs": {"surponderer": [], "alleger": []},
+  "commentaire_weekend": "string"
+}""",
+        messages=[{"role": "user", "content": f"""
+DATE: {datetime.date.today().strftime('%A %d %B %Y')} (SAMEDI)
+PORTEFEUILLE: ~236 000€ répartis sur IB (US tech), PEA/CTO (actions FR/EU), PER Linxea (fonds)
+POSITIONS CLÉS EN MV: Alstom -44%, Edenred -51%, Clariane -60%, Elior -85%, Carmat -100%
+POSITIONS CLÉS EN PV: Micron +408%, Spotify +77%, Blast Army +364%, ASML +27%, Vinci +57%
+CASH DISPONIBLE: ~730€ sur IB
+
+MACRO CETTE SEMAINE:
+{macro_str}
+
+Génère le briefing complet du samedi avec 6-8 actions prioritaires et 5 opportunités CT et LT.
+"""}]
+    )
+
+    raw = message.content[0].text
+    try:
+        analysis = json.loads(raw)
+    except:
+        import re
+        match = re.search(r'\{.*\}', raw, re.DOTALL)
+        analysis = json.loads(match.group()) if match else {"error": raw[:500]}
+
+    result = {
+        "generated_at": datetime.datetime.now().isoformat(),
+        "date": datetime.date.today().isoformat(),
+        "week_number": datetime.date.today().isocalendar()[1],
+        "macro": macro,
+        "portfolio": {
+            "total_value_eur": 236000,
+            "total_pv_eur": -15000,
+            "total_pv_pct": -6.0,
+            "eurusd": macro.get("EUR/USD", {}).get("price", 1.17),
+            "positions": [],
+            "brokers": ["interactive_brokers", "boursorama", "linxea"]
+        },
+        "screened_count": 50,
+        "opportunities": {},
+        "backtest": {},
+        "recent_calls": [],
+        "analysis": analysis,
+    }
+
+    os.makedirs("dashboard", exist_ok=True)
+    with open(OUTPUT, "w", encoding="utf-8") as f:
+        json.dump(result, f, ensure_ascii=False, indent=2)
+    print(f"Briefing généré: {OUTPUT}")
+
+if __name__ == "__main__":
+    main()
