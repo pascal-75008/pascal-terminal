@@ -1,0 +1,114 @@
+name: Pascal Terminal — Briefing Samedi Matin
+
+on:
+  # Samedi 7h00 CET = 06h00 UTC (été) / 5h00 UTC (hiver)
+  # Prêt pour consulter depuis 8h avec café
+  schedule:
+    - cron: '0 5 * * 6'    # Samedi 7h00 CET hiver (UTC+1)
+    - cron: '0 6 * * 6'    # Samedi 8h00 CEST été  (UTC+2)
+
+  # Déclenchement manuel depuis GitHub
+  workflow_dispatch:
+    inputs:
+      fast_mode:
+        description: 'Mode rapide (sans re-screening complet)'
+        type: boolean
+        default: false
+
+jobs:
+  saturday-briefing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30   # Full screen peut prendre 15-20 min
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install anthropic requests flask openpyxl
+
+      - name: Restore screener cache
+        uses: actions/cache@v4
+        with:
+          path: dashboard/screened_cache.json
+          key: screener-cache-${{ github.run_id }}
+          restore-keys: screener-cache-
+
+      - name: Restore backtest history
+        uses: actions/cache@v4
+        with:
+          path: data/backtest_history.json
+          key: backtest-${{ github.run_id }}
+          restore-keys: backtest-
+
+      - name: Restore portfolio
+        uses: actions/cache@v4
+        with:
+          path: data/current_portfolio.json
+          key: portfolio-${{ github.run_id }}
+          restore-keys: portfolio-
+
+      - name: Run Saturday briefing
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          EMAIL_SENDER:      ${{ secrets.EMAIL_SENDER }}
+          EMAIL_RECIPIENT:   ${{ secrets.EMAIL_RECIPIENT }}
+          GMAIL_APP_PASSWORD:${{ secrets.GMAIL_APP_PASSWORD }}
+        run: |
+          cd src
+          python briefing_engine_v2.py ${{ inputs.fast_mode == 'true' && '--fast' || '' }}
+
+      - name: Send email
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          EMAIL_SENDER:      ${{ secrets.EMAIL_SENDER }}
+          EMAIL_RECIPIENT:   ${{ secrets.EMAIL_RECIPIENT }}
+          GMAIL_APP_PASSWORD:${{ secrets.GMAIL_APP_PASSWORD }}
+        run: |
+          cd src
+          python -c "
+          import json, sys
+          sys.path.insert(0, '.')
+          from email_sender import generate_and_send
+          with open('../dashboard/latest_briefing.json') as f:
+              data = json.load(f)
+          generate_and_send(data)
+          print('Email envoyé')
+          "
+
+      - name: Commit updated data
+        run: |
+          git config --global user.email "pascal-terminal@bot.github"
+          git config --global user.name "Pascal Terminal Bot"
+          git add dashboard/latest_briefing.json \
+                  dashboard/latest_email.html \
+                  data/backtest_history.json || true
+          git diff --staged --quiet || \
+            git commit -m "Briefing S$(date +%V) $(date +%Y-%m-%d) — $(python -c "import json; d=json.load(open('dashboard/latest_briefing.json')); print(len(d.get('analysis',{}).get('actions_samedi_matin',[])), 'actions')" 2>/dev/null || echo '?')"
+          git push || true
+
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: dashboard
+          clean: false
+          commit-message: "Deploy briefing S${{ github.run_number }}"
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: briefing-s${{ github.run_number }}
+          path: |
+            dashboard/latest_briefing.json
+            dashboard/latest_email.html
+          retention-days: 365   # Garde 1 an pour le backtesting
