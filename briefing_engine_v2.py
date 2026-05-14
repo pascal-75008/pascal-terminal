@@ -113,10 +113,11 @@ Génère le briefing complet du samedi avec 6-8 actions prioritaires et 5 opport
 
     raw = message.content[0].text
     try:
-        analysis = json.loads(raw)
+        raw_clean = raw.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
+        analysis = json.loads(raw_clean)
     except:
         import re
-        match = re.search(r'\{.*\}', raw, re.DOTALL)
+        match = re.search(r'\{.*\}', raw.replace('\n', ' '), re.DOTALL)
         analysis = json.loads(match.group()) if match else {"error": raw[:500]}
 
     result = {
