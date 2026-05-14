@@ -1,1 +1,53 @@
-{}
+{
+  "generated_at": "2026-05-14T12:00:00",
+  "date": "2026-05-14",
+  "week_number": 20,
+  "macro": {
+    "S&P 500": {"price": 5800, "week_chg": 1.2},
+    "Nasdaq": {"price": 18500, "week_chg": 1.5},
+    "CAC 40": {"price": 7800, "week_chg": 0.8},
+    "Or": {"price": 2400, "week_chg": 2.1},
+    "EUR/USD": {"price": 1.17, "week_chg": 0.3}
+  },
+  "portfolio": {
+    "total_value_eur": 236000,
+    "total_pv_eur": -15000,
+    "total_pv_pct": -6.0,
+    "eurusd": 1.17,
+    "positions": [],
+    "brokers": ["interactive_brokers", "boursorama", "linxea"]
+  },
+  "screened_count": 50,
+  "opportunities": {},
+  "backtest": {},
+  "recent_calls": [],
+  "analysis": {
+    "semaine_en_bref": "Marché en mode RISK_ON cette semaine porté par la tech US et la détente commerciale USA-Chine. Prudence sur les valeurs françaises en difficulté.",
+    "orientation_marche": "RISK_ON",
+    "niveau_risque": "MODERE",
+    "commentaire_weekend": "Bonjour Pascal. Cette semaine les marchés ont bien performé...",
+    "actions_samedi_matin": [
+      {
+        "priorite": 1,
+        "type": "VENTE",
+        "ticker": "ALO.PA",
+        "nom": "Alstom",
+        "courtier": "Boursorama",
+        "montant_suggere": 4000,
+        "prix_entree": 17.44,
+        "prix_cible": 0,
+        "stop_loss": 0,
+        "horizon": "CT_JOURS",
+        "conviction": 4,
+        "rationale": "MV de -44%, rebond technique, pas de catalyseur avant 2027. Sortir maintenant.",
+        "risque_principal": "Rebond surprise sur annonce contrat",
+        "disponible_pea": true
+      }
+    ],
+    "top_screener_ct": [],
+    "top_screener_lt": [],
+    "positions_a_surveiller": [],
+    "macro_drivers": [],
+    "secteurs": {"surponderer": ["IA", "Défense"], "alleger": ["Luxe", "Auto"]}
+  }
+}
