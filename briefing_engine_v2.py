@@ -37,7 +37,7 @@ def main():
     ])
 
     message = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model="claude-sonnet-4-5",
         max_tokens=4000,
         system="""Tu es un conseiller financier expert. Tu produis le briefing hebdomadaire de Pascal, 
 investisseur parisien qui arbitre le samedi matin. Horizon 5-7 ans pour doubler son portefeuille.
