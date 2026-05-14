@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pascal Terminal v2</title>
+<style>
+:root{
+  --bg:#f0efe8;--card:#fff;--card2:#f8f8f5;--border:rgba(0,0,0,0.07);
+  --text:#1a1a1a;--muted:#666;--faint:#aaa;
+  --green:#2d6a1f;--green-bg:#e8f5e0;
+  --red:#8b2020;--red-bg:#fdeaea;
+  --amber:#7a4500;--amber-bg:#fef3e0;
+  --blue:#1a4f8a;--blue-bg:#e3eefa;
+  --purple:#3a2d8a;--purple-bg:#eeecfc;
+  --teal:#065040;--teal-bg:#e0f5ee;
+  --topbar:#161616;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#111;--card:#1c1c1e;--card2:#242426;--border:rgba(255,255,255,0.07);
+    --text:#f0f0f0;--muted:#999;--faint:#555;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;line-height:1.6}
+
+/* Topbar */
+.topbar{background:var(--topbar);display:flex;align-items:center;justify-content:space-between;padding:10px 20px;position:sticky;top:0;z-index:200}
+.logo{color:#fff;font-size:15px;font-weight:600;display:flex;align-items:center;gap:8px}
+.logo-dot{width:7px;height:7px;border-radius:50%;background:#4caf50;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.topbar-meta{color:#888;font-size:11px;text-align:right}
+.topbar-actions{display:flex;gap:8px}
+.topbar-btn{padding:5px 12px;border:0.5px solid #444;border-radius:6px;font-size:12px;cursor:pointer;background:transparent;color:#ccc;transition:all .15s}
+.topbar-btn:hover{background:#333;color:#fff}
+.topbar-btn.primary{background:#2d6a1f;border-color:#2d6a1f;color:#fff}
+
+/* Nav tabs */
+.nav{background:var(--topbar);border-bottom:1px solid #2a2a2a;display:flex;gap:0;padding:0 20px;overflow-x:auto}
+.nav-tab{padding:10px 18px;font-size:12px;color:#888;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .15s}
+.nav-tab.active{color:#fff;border-bottom-color:#fff}
+.nav-tab:hover{color:#ccc}
+
+/* Layout */
+.main{max-width:1280px;margin:0 auto;padding:20px 16px}
+.section{display:none}.section.active{display:block}
+
+/* Cards */
+.card{background:var(--card);border:0.5px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:16px}
+.card-sm{background:var(--card2);border:0.5px solid var(--border);border-radius:8px;padding:12px 14px}
+.card-title{font-size:11px;font-weight:600;color:var(--faint);letter-spacing:.05em;margin-bottom:12px}
+
+/* Grid */
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:900px){.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:1fr 1fr}.g2{grid-template-columns:1fr}}
+@media(max-width:500px){.g4{grid-template-columns:1fr 1fr}}
+
+/* Metrics */
+.metric{background:var(--card2);border-radius:8px;padding:14px 16px}
+.metric .lbl{font-size:11px;color:var(--muted);margin-bottom:3px}
+.metric .val{font-size:22px;font-weight:600}
+.metric .sub{font-size:11px;margin-top:2px}
+.pos{color:var(--green)}.neg{color:var(--red)}.neu{color:var(--muted)}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.bg{background:var(--green-bg);color:var(--green)}
+.br{background:var(--red-bg);color:var(--red)}
+.ba{background:var(--amber-bg);color:var(--amber)}
+.bb{background:var(--blue-bg);color:var(--blue)}
+.bp{background:var(--purple-bg);color:var(--purple)}
+.bt{background:var(--teal-bg);color:var(--teal)}
+.bgr{background:#f0efe8;color:#555}
+
+/* Tables */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:8px 10px;border-bottom:1.5px solid var(--border);font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap}
+td{padding:9px 10px;border-bottom:0.5px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(0,0,0,.02)}
+.tscroll{overflow-x:auto}
+
+/* Priority rows */
+.prio-1 td:first-child{border-left:3px solid var(--red)}
+.prio-2 td:first-child{border-left:3px solid var(--amber)}
+.prio-3 td:first-child{border-left:3px solid var(--green)}
+
+/* Stars */
+.stars{color:#c48a00;font-size:13px}
+
+/* Upload zone */
+.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:40px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:16px}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--green);background:var(--green-bg)}
+.upload-zone h3{font-size:15px;margin-bottom:8px}
+.upload-zone p{color:var(--muted);font-size:13px}
+.upload-zone input{display:none}
+
+/* Backtest chart bars */
+.bar-container{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px}
+.bar-label{width:100px;color:var(--muted);flex-shrink:0;text-align:right}
+.bar-track{flex:1;background:var(--card2);border-radius:4px;height:14px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .5s}
+.bar-val{width:50px;font-weight:600}
+
+/* Alert strip */
+.alert-strip{border-left:3px solid;padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:8px}
+.alert-strip.fort{border-color:var(--red);background:var(--red-bg)}
+.alert-strip.moyen{border-color:var(--amber);background:var(--amber-bg)}
+.alert-strip.neutre{border-color:var(--blue);background:var(--blue-bg)}
+
+/* Screener cards */
+.opp-card{background:var(--card2);border:0.5px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.opp-info{flex:1}
+.opp-name{font-weight:600;font-size:14px}
+.opp-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.opp-rationale{font-size:12px;color:var(--muted);margin-top:6px}
+.opp-stats{text-align:right;flex-shrink:0}
+.opp-price{font-size:18px;font-weight:600}
+.opp-chg{font-size:12px}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;right:20px;background:#1a1a1a;color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;z-index:999;transform:translateY(100px);opacity:0;transition:all .3s}
+.toast.show{transform:translateY(0);opacity:1}
+
+/* Loading spinner */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--green);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Broker tags */
+.broker-degiro{background:#f0f7e6;color:#2d6a1f}
+.broker-boursorama{background:#e3eefa;color:#1a4f8a}
+.broker-linxea{background:#fef3e0;color:#7a4500}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo">
+    <span class="logo-dot"></span>
+    Pascal Terminal <span style="color:#555;font-weight:400;font-size:12px;margin-left:6px">v2.0</span>
+  </div>
+  <div class="topbar-actions">
+    <button class="topbar-btn" onclick="triggerBriefing(true)">⚡ Briefing rapide</button>
+    <button class="topbar-btn primary" onclick="triggerBriefing(false)">🔄 Screening complet</button>
+  </div>
+  <div class="topbar-meta" id="topbar-meta">Chargement...</div>
+</div>
+
+<!-- NAV -->
+<div class="nav">
+  <div class="nav-tab active" onclick="showSection('samedi')">📋 Samedi matin</div>
+  <div class="nav-tab" onclick="showSection('screener')">🔍 Screener mondial</div>
+  <div class="nav-tab" onclick="showSection('portfolio')">💼 Portefeuille</div>
+  <div class="nav-tab" onclick="showSection('macro')">🌍 Macro</div>
+  <div class="nav-tab" onclick="showSection('backtest')">📊 Backtesting</div>
+  <div class="nav-tab" onclick="showSection('upload')">⬆️ Importer</div>
+</div>
+
+<div class="main">
+
+<!-- SAMEDI MATIN -->
+<div id="samedi" class="section active">
+  <div id="samedi-content"><div style="padding:40px;text-align:center;color:var(--muted)"><span class="spinner"></span>Chargement du briefing...</div></div>
+</div>
+
+<!-- SCREENER MONDIAL -->
+<div id="screener" class="section">
+  <div id="screener-content"><div style="padding:40px;text-align:center;color:var(--muted)">Chargement...</div></div>
+</div>
+
+<!-- PORTEFEUILLE -->
+<div id="portfolio" class="section">
+  <div id="portfolio-content"><div style="padding:40px;text-align:center;color:var(--muted)">Chargement...</div></div>
+</div>
+
+<!-- MACRO -->
+<div id="macro" class="section">
+  <div id="macro-content"><div style="padding:40px;text-align:center;color:var(--muted)">Chargement...</div></div>
+</div>
+
+<!-- BACKTESTING -->
+<div id="backtest" class="section">
+  <div id="backtest-content"><div style="padding:40px;text-align:center;color:var(--muted)">Chargement...</div></div>
+</div>
+
+<!-- IMPORTER -->
+<div id="upload" class="section">
+  <div class="card">
+    <div class="card-title">IMPORTER TON PORTEFEUILLE</div>
+    <div class="upload-zone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+      <input type="file" id="fileInput" multiple accept=".xlsx,.xls,.csv" onchange="handleFiles(this.files)">
+      <h3>Glisse tes fichiers ici ou clique pour sélectionner</h3>
+      <p>Formats supportés : Interactive Brokers (.xlsx), Boursorama (.csv), Linxea (.xlsx)</p>
+      <p style="margin-top:8px;font-size:12px">Tu peux uploader plusieurs fichiers simultanément</p>
+    </div>
+    <div id="upload-status"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">GUIDE D'EXPORT PAR COURTIER</div>
+    <div class="g3">
+      <div class="card-sm">
+        <div style="font-weight:600;margin-bottom:6px">Interactive Brokers</div>
+        <div style="font-size:12px;color:var(--muted)">Compte → Relevés → Relevé d'activité → Format Excel → Exporter "Aperçu du portefeuille"</div>
+      </div>
+      <div class="card-sm">
+        <div style="font-weight:600;margin-bottom:6px">Boursorama</div>
+        <div style="font-size:12px;color:var(--muted)">Mon épargne → Mes comptes → Exporter positions → CSV (export-positions-instantanees...)</div>
+      </div>
+      <div class="card-sm">
+        <div style="font-weight:600;margin-bottom:6px">Linxea</div>
+        <div style="font-size:12px;color:var(--muted)">Mon espace → Documents → Données financières → Export Excel (Linxea_donnees-financieres...)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+let DATA = null;
+
+// ─── NAVIGATION ──────────────────────────────────────────────────────────────
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+  if (DATA) renderSection(id, DATA);
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+const fmtN = (v, d=1) => v == null ? '—' : Number(v).toLocaleString('fr-FR', {maximumFractionDigits:d, minimumFractionDigits:d});
+const fmtP = (v, plus=true) => {
+  if (v == null) return '—';
+  const s = (v>=0&&plus)?'+':''; const c = v>=0?'pos':'neg';
+  return `<span class="${c}">${s}${fmtN(v)}%</span>`;
+};
+const fmtE = v => { if(v==null)return'—'; const s=v>=0?'+':''; const c=v>=0?'pos':'neg'; return `<span class="${c}">${s}${Math.round(v).toLocaleString('fr-FR')}€</span>`; };
+const stars = n => Array.from({length:5},(_,i)=>`<span style="color:${i<n?'#c48a00':'#ddd'}">★</span>`).join('');
+const badge = (txt, cls) => `<span class="badge ${cls}">${txt}</span>`;
+const actionBadge = a => {
+  const m={ACHAT_CT:'bg',ACHAT_LT:'bt',VENTE:'br',ALLEGER:'ba',SHORT:'bp',HEDGER:'bp',SURVEILLER:'bb'};
+  return badge(a, m[a]||'bgr');
+};
+const brokerBadge = b => {
+  const m={DeGiro:'broker-degiro badge',Boursorama:'broker-boursorama badge',Linxea:'broker-linxea badge'};
+  return `<span class="${m[b]||'badge bgr'}">${b||'?'}</span>`;
+};
+function toast(msg, ok=true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  t.style.background = ok ? '#1a4a1a' : '#4a1a1a';
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ─── LOAD DATA ───────────────────────────────────────────────────────────────
+async function loadData() {
+  try {
+    const r = await fetch('latest_briefing.json?t=' + Date.now());
+    if (!r.ok) throw new Error('Briefing non disponible');
+    DATA = await r.json();
+    const a = DATA.analysis || {};
+    const genAt = (DATA.generated_at||'').slice(0,16).replace('T',' ');
+    document.getElementById('topbar-meta').textContent =
+      `Semaine ${DATA.week_number} · ${genAt} · ${DATA.screened_count||0} instruments scannés`;
+    renderSection('samedi', DATA);
+  } catch(e) {
+    document.getElementById('samedi-content').innerHTML =
+      `<div style="padding:40px;text-align:center;color:var(--red)">
+        Aucun briefing disponible.<br>
+        <span style="color:var(--muted);font-size:12px">Cliquez sur "Screening complet" pour générer le premier briefing</span>
+      </div>`;
+  }
+}
+
+// ─── RENDER SECTIONS ─────────────────────────────────────────────────────────
+function renderSection(id, data) {
+  const fns = {
+    samedi:    renderSamedi,
+    screener:  renderScreener,
+    portfolio: renderPortfolio,
+    macro:     renderMacro,
+    backtest:  renderBacktest,
+  };
+  if (fns[id]) fns[id](data);
+}
+
+function renderSamedi(data) {
+  const a = data.analysis || {};
+  const actions = a.actions_samedi_matin || [];
+  const p = data.portfolio || {};
+  const tv = p.total_value_eur || 0;
+  const pv = p.total_pv_eur || 0;
+  const pvp = p.total_pv_pct || 0;
+  const bt = data.backtest || {};
+
+  const orBadge = o => {
+    const m={RISK_ON:'bg',RISK_OFF:'br',MIXTE:'ba'};
+    return badge(o||'MIXTE', m[o]||'ba');
+  };
+  const rlBadge = r => {
+    const m={FAIBLE:'bt',MODERE:'ba',ELEVE:'br',EXTREME:'bp'};
+    return badge('Risque '+(r||'?'), m[r]||'ba');
+  };
+
+  let html = `
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+    ${orBadge(a.orientation_marche)} ${rlBadge(a.niveau_risque)}
+    <span style="color:var(--muted);font-size:13px">${a.semaine_en_bref||''}</span>
+  </div>
+
+  <div class="g4">
+    <div class="metric"><div class="lbl">Portefeuille total</div>
+      <div class="val">${Math.round(tv).toLocaleString('fr-FR')}€</div>
+      <div class="sub" style="color:var(--muted)">${data.portfolio?.brokers?.join(' + ')||''}</div></div>
+    <div class="metric"><div class="lbl">PV / MV globale</div>
+      <div class="val ${pv>=0?'pos':'neg'}">${pv>=0?'+':''}${Math.round(pv).toLocaleString('fr-FR')}€</div>
+      <div class="sub ${pvp>=0?'pos':'neg'}">${pvp>=0?'+':''}${fmtN(pvp)}%</div></div>
+    <div class="metric"><div class="lbl">EUR/USD</div>
+      <div class="val">${fmtN(p.eurusd||1.17,4)}</div>
+      <div class="sub" style="color:var(--muted)">Taux live</div></div>
+    <div class="metric"><div class="lbl">Hit rate Claude</div>
+      <div class="val">${bt.hit_rate||'—'}${bt.hit_rate?'%':''}</div>
+      <div class="sub" style="color:var(--muted)">${bt.evaluated||0} reco évaluées</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">PLAN D'ACTION DU SAMEDI — ORDONNÉ PAR PRIORITÉ</div>
+    <div class="tscroll"><table>
+      <thead><tr>
+        <th>#</th><th>Type</th><th>Valeur</th><th>Courtier</th>
+        <th style="text-align:right">Montant</th><th style="text-align:right">Entrée</th>
+        <th style="text-align:right">Cible</th><th style="text-align:right">Stop</th>
+        <th>Horizon</th><th style="text-align:center">Conv.</th><th>Rationale</th>
+      </tr></thead><tbody>`;
+
+  actions.forEach((act, i) => {
+    const prioClass = i===0?'prio-1':i<=2?'prio-2':'prio-3';
+    const pea = act.disponible_pea ? badge('PEA ok','bt') : '';
+    html += `<tr class="${prioClass}">
+      <td style="font-weight:700;font-size:16px;color:${i<1?'var(--red)':i<3?'var(--amber)':'var(--green)'}">${act.priorite||i+1}</td>
+      <td>${actionBadge(act.type||'')}</td>
+      <td><strong>${act.nom||''}</strong><br><span style="color:var(--muted);font-size:11px">${act.ticker||''} ${pea}</span></td>
+      <td>${brokerBadge(act.courtier||'')}</td>
+      <td style="text-align:right;font-weight:500">${act.montant_suggere?Math.round(act.montant_suggere).toLocaleString('fr-FR')+'€':'—'}</td>
+      <td style="text-align:right">${act.prix_entree||'—'}</td>
+      <td style="text-align:right;color:var(--green)">${act.prix_cible||'—'}</td>
+      <td style="text-align:right;color:var(--red)">${act.stop_loss||'—'}</td>
+      <td><span class="badge bgr" style="font-size:10px">${act.horizon||''}</span></td>
+      <td style="text-align:center"><span class="stars">${stars(act.conviction||3)}</span></td>
+      <td style="font-size:12px;color:var(--muted);max-width:200px">
+        ${act.rationale||''}<br>
+        <span style="color:var(--red-bg);font-size:11px">⚠ ${act.risque_principal||''}</span>
+      </td>
+    </tr>`;
+  });
+
+  html += `</tbody></table></div></div>`;
+
+  // Macro drivers
+  const drivers = a.macro_drivers || [];
+  if (drivers.length) {
+    html += `<div class="card"><div class="card-title">DRIVERS MACRO DE LA SEMAINE</div>`;
+    drivers.forEach(d => {
+      const cls = d.impact==='POSITIF'?'bt':d.impact==='NEGATIF'?'br':'bgr';
+      html += `<div style="display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:0.5px solid var(--border)">
+        ${badge(d.impact||'NEUTRE', cls)}
+        <div><strong style="font-size:13px">${d.facteur||''}</strong> — <span style="font-size:12px;color:var(--muted)">${d.detail||''}</span></div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Commentaire
+  if (a.commentaire_weekend) {
+    html += `<div style="background:var(--topbar);border-radius:12px;padding:20px 24px">
+      <div style="font-size:11px;font-weight:600;color:#666;letter-spacing:.05em;margin-bottom:10px">COMMENTAIRE DU DESK</div>
+      <div style="color:#ccc;font-size:13px;line-height:1.9;white-space:pre-wrap">${a.commentaire_weekend}</div>
+    </div>`;
+  }
+
+  document.getElementById('samedi-content').innerHTML = html;
+}
+
+function renderScreener(data) {
+  const a = data.analysis || {};
+  const ct = a.top_screener_ct || [];
+  const lt = a.top_screener_lt || [];
+  const opps = data.opportunities || {};
+
+  let html = `<div class="g2">`;
+
+  // CT opportunities
+  html += `<div><div class="card-title" style="margin-bottom:8px">TOP CT — MOMENTUM & CATALYSEUR (quelques jours/semaines)</div>`;
+  ct.forEach(o => {
+    html += `<div class="opp-card">
+      <div class="opp-info">
+        <div class="opp-name">${o.nom||o.name||''}</div>
+        <div class="opp-meta">${o.ticker||''} · ${o.theme||''}</div>
+        <div style="margin-top:6px">${brokerBadge(o.courtier||'DeGiro')}</div>
+        <div class="opp-rationale">${o.rationale||''}</div>
+      </div>
+      <div class="opp-stats">
+        <div class="opp-price">${o.prix||'—'}</div>
+        <div class="opp-chg pos">→ ${o.cible_ct||'?'}</div>
+        <div style="margin-top:4px;font-size:11px;color:var(--muted)">Momentum ${o.momentum_score||'?'}/100</div>
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+
+  // LT convictions
+  html += `<div><div class="card-title" style="margin-bottom:8px">TOP LT — CONVICTION RETRAITE (5-7 ans, 3-5K€)</div>`;
+  lt.forEach(o => {
+    const lx = o.vehicule_linxea ? badge('Linxea: '+o.vehicule_linxea,'ba') : '';
+    html += `<div class="opp-card" style="border-left:3px solid var(--teal)">
+      <div class="opp-info">
+        <div class="opp-name">${o.nom||o.name||''}</div>
+        <div class="opp-meta">${o.ticker||''} · ${o.theme||''}</div>
+        <div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap">${brokerBadge(o.courtier||'DeGiro')} ${lx}</div>
+        <div class="opp-rationale" style="font-style:italic">"${o.these_retraite||''}"</div>
+      </div>
+      <div class="opp-stats">
+        <div style="font-size:13px;font-weight:600;color:var(--teal)">${o.montant_suggere?Math.round(o.montant_suggere).toLocaleString('fr-FR')+'€':'?'}</div>
+        <div style="font-size:11px;color:var(--muted)">suggéré</div>
+      </div>
+    </div>`;
+  });
+  html += `</div></div>`; // close g2
+
+  // Secteurs
+  const sec = a.secteurs || {};
+  if (sec.surponderer || sec.alleger) {
+    html += `<div class="card"><div class="card-title">ALLOCATION SECTORIELLE</div>
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:5px">SURPONDÉRER</div>
+        ${(sec.surponderer||[]).map(s=>badge(s,'bt')).join(' ')}
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:5px">ALLÉGER</div>
+        ${(sec.alleger||[]).map(s=>badge(s,'br')).join(' ')}
+      </div>
+    </div>`;
+  }
+
+  // Positions à surveiller
+  const watch = a.positions_a_surveiller || [];
+  if (watch.length) {
+    html += `<div class="card"><div class="card-title">POSITIONS À SURVEILLER CETTE SEMAINE</div>`;
+    watch.forEach(w => {
+      html += `<div style="padding:8px 0;border-bottom:0.5px solid var(--border)">
+        <strong>${w.nom||''}</strong> <span style="color:var(--muted);font-size:12px">${w.ticker||''}</span>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">${w.situation||''}</div>
+        <div style="font-size:12px;color:var(--amber);margin-top:2px">→ SI: ${w.action_si||''}</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  document.getElementById('screener-content').innerHTML = html;
+}
+
+function renderPortfolio(data) {
+  const p = data.portfolio || {};
+  const positions = (p.positions || []).sort((a,b) => Math.abs(b.pv_eur||0) - Math.abs(a.pv_eur||0));
+
+  let html = `<div class="card"><div class="card-title">TOUTES LES POSITIONS (${positions.length})</div>
+    <div class="tscroll"><table>
+      <thead><tr>
+        <th>Courtier</th><th>Valeur</th><th>Ticker</th>
+        <th style="text-align:right">Qté</th><th style="text-align:right">PRU</th>
+        <th style="text-align:right">Cours</th><th style="text-align:right">Valeur</th>
+        <th style="text-align:right">PV/MV €</th><th style="text-align:right">PV/MV %</th>
+        <th style="text-align:right">Sem.</th>
+      </tr></thead><tbody>`;
+
+  positions.forEach(pos => {
+    const pv = pos.pv_eur || 0;
+    const pvp = pos.pv_pct || 0;
+    const wk = pos.week_chg || pos.ytd_pct || 0;
+    const brokerCls = {interactive_brokers:'broker-degiro',boursorama:'broker-boursorama',linxea:'broker-linxea',degiro:'broker-degiro'}[pos.broker]||'bgr';
+    html += `<tr>
+      <td><span class="badge ${brokerCls}" style="font-size:10px">${pos.broker||'?'}</span></td>
+      <td style="max-width:160px;font-size:12px">${pos.name||''}</td>
+      <td style="font-size:11px;color:var(--muted)">${pos.ticker||pos.isin||''}</td>
+      <td style="text-align:right">${pos.qty!=null?fmtN(pos.qty,0):'—'}</td>
+      <td style="text-align:right;color:var(--muted)">${pos.pru?fmtN(pos.pru,2):'—'}</td>
+      <td style="text-align:right;font-weight:500">${pos.price_live?fmtN(pos.price_live,2):pos.price?fmtN(pos.price,2):'—'}</td>
+      <td style="text-align:right">${pos.value_eur?Math.round(pos.value_eur).toLocaleString('fr-FR')+'€':'—'}</td>
+      <td style="text-align:right">${fmtE(pv)}</td>
+      <td style="text-align:right">${fmtP(pvp)}</td>
+      <td style="text-align:right">${fmtP(wk)}</td>
+    </tr>`;
+  });
+
+  html += `</tbody></table></div></div>`;
+  document.getElementById('portfolio-content').innerHTML = html;
+}
+
+function renderMacro(data) {
+  const macro = data.macro || {};
+  let html = `<div class="g3">`;
+  let i = 0;
+  for (const [name, vals] of Object.entries(macro)) {
+    if (!vals.price) continue;
+    const chg = vals.week_chg || 0;
+    html += `<div class="metric">
+      <div class="lbl">${name}</div>
+      <div class="val">${fmtN(vals.price, name.includes('USD')?4:2)}</div>
+      <div class="sub">${fmtP(chg)} semaine</div>
+    </div>`;
+    if (++i % 3 === 0) html += `</div><div class="g3">`;
+  }
+  html += `</div>`;
+  document.getElementById('macro-content').innerHTML = html;
+}
+
+function renderBacktest(data) {
+  const bt = data.backtest || {};
+  const recent = data.recent_calls || [];
+
+  let html = `<div class="g3">
+    <div class="metric"><div class="lbl">Hit rate global</div>
+      <div class="val ${(bt.hit_rate||0)>=60?'pos':'neg'}">${bt.hit_rate||'—'}${bt.hit_rate?'%':''}</div>
+      <div class="sub" style="color:var(--muted)">${bt.evaluated||0} recommandations évaluées</div></div>
+    <div class="metric"><div class="lbl">Total recommandations</div>
+      <div class="val">${bt.total_recommendations||0}</div>
+      <div class="sub" style="color:var(--muted)">depuis le lancement</div></div>
+    <div class="metric"><div class="lbl">Bilan</div>
+      <div class="val" style="font-size:14px">${bt.bilan||'Pas encore de données'}</div></div>
+  </div>`;
+
+  // Hit rate by conviction
+  const byConv = bt.by_conviction || {};
+  if (Object.keys(byConv).length) {
+    html += `<div class="card"><div class="card-title">HIT RATE PAR NIVEAU DE CONVICTION</div>`;
+    [5,4,3,2,1].forEach(c => {
+      const d = byConv[c] || byConv[String(c)];
+      if (!d) return;
+      const hr = d.hit_rate || 0;
+      html += `<div class="bar-container">
+        <div class="bar-label">${'★'.repeat(c)}${'☆'.repeat(5-c)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${hr}%;background:${hr>=60?'var(--green)':hr>=40?'#c48a00':'var(--red)'}"></div></div>
+        <div class="bar-val ${hr>=60?'pos':hr>=40?'':'neg'}">${hr}%</div>
+        <div style="font-size:11px;color:var(--muted)">(${d.total||0})</div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Recent calls
+  if (recent.length) {
+    html += `<div class="card"><div class="card-title">HISTORIQUE DES RECOMMANDATIONS</div>
+      <div class="tscroll"><table>
+        <thead><tr>
+          <th>Semaine</th><th>Valeur</th><th>Action</th><th>Horizon</th>
+          <th style="text-align:right">Entrée</th><th style="text-align:right">Cours actuel</th>
+          <th style="text-align:right">Perf.</th><th>Résultat</th>
+        </tr></thead><tbody>`;
+    recent.forEach(r => {
+      const hit = r.hit === true ? badge('✓ HIT','bg') : r.hit === false ? badge('✗ MISS','br') : badge('En cours','bb');
+      const perf = r.performance;
+      html += `<tr>
+        <td style="color:var(--muted)">S${r.week||'?'}</td>
+        <td><strong>${r.name||r.ticker||''}</strong></td>
+        <td>${actionBadge(r.action||'')}</td>
+        <td><span class="badge bgr" style="font-size:10px">${r.horizon||''}</span></td>
+        <td style="text-align:right">${r.prix_entree||'—'}</td>
+        <td style="text-align:right">${r.prix_actuel||'—'}</td>
+        <td style="text-align:right">${perf!=null?fmtP(perf):'—'}</td>
+        <td>${hit}</td>
+      </tr>`;
+    });
+    html += `</tbody></table></div></div>`;
+  } else {
+    html += `<div class="card" style="text-align:center;padding:40px;color:var(--muted)">
+      Le backtesting démarrera après le premier briefing.<br>
+      <span style="font-size:12px">Les recommandations sont évaluées automatiquement 2 semaines (CT), 8 semaines (MT) et 1 an (LT) après émission.</span>
+    </div>`;
+  }
+
+  document.getElementById('backtest-content').innerHTML = html;
+}
+
+// ─── FILE UPLOAD ─────────────────────────────────────────────────────────────
+function handleFiles(files) {
+  if (!files.length) return;
+  const status = document.getElementById('upload-status');
+  status.innerHTML = `<div style="padding:12px;color:var(--muted)"><span class="spinner"></span>Traitement de ${files.length} fichier(s)...</div>`;
+
+  const fd = new FormData();
+  Array.from(files).forEach(f => fd.append('files', f));
+
+  fetch('/api/portfolio/upload', {method:'POST', body:fd})
+    .then(r => r.json())
+    .then(d => {
+      if (d.success) {
+        status.innerHTML = `<div class="card-sm" style="background:var(--green-bg);color:var(--green);margin-top:8px">
+          ✓ ${d.positions} positions importées depuis ${d.brokers?.join(', ')}<br>
+          <span style="font-size:12px">Valeur totale: ${Math.round(d.total_eur).toLocaleString('fr-FR')}€</span>
+          ${d.errors?.length ? '<br><span style="color:var(--amber)">⚠ ' + d.errors.join(', ') + '</span>' : ''}
+        </div>`;
+        toast(`✓ ${d.positions} positions importées`);
+        loadData();
+      } else {
+        status.innerHTML = `<div class="card-sm" style="background:var(--red-bg);color:var(--red);margin-top:8px">✗ ${d.error}</div>`;
+        toast('Erreur: ' + d.error, false);
+      }
+    })
+    .catch(() => {
+      // Fallback: parse locally with JS (when no server)
+      status.innerHTML = `<div class="card-sm" style="background:var(--amber-bg);color:var(--amber);margin-top:8px">
+        ⚠ Serveur non disponible. En mode GitHub Pages, utilisez le script Python local pour importer votre portefeuille.
+      </div>`;
+    });
+}
+
+// Drag and drop
+const dz = document.getElementById('dropzone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag'); handleFiles(e.dataTransfer.files); });
+
+// ─── TRIGGER BRIEFING ────────────────────────────────────────────────────────
+async function triggerBriefing(fast) {
+  toast(fast ? '⚡ Briefing rapide lancé...' : '🔄 Screening complet lancé (5-10 min)...');
+  try {
+    const r = await fetch('/api/trigger-briefing', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({fast})
+    });
+    const d = await r.json();
+    if (d.success) toast(d.message);
+    else toast('Erreur: ' + d.error, false);
+  } catch {
+    toast('Mode statique: lancez python src/briefing_engine_v2.py', false);
+  }
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+loadData();
+setInterval(loadData, 120000); // refresh every 2 min
+</script>
+</body>
+</html>
