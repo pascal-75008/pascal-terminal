@@ -4,7 +4,7 @@ import datetime
 import requests
 import anthropic
 
-OUTPUT = "dashboard/latest_briefing.json"
+OUTPUT = "docs/latest_briefing.json"
 
 MACRO = {
     "S&P 500": "^GSPC", "Nasdaq": "^NDX", "CAC 40": "^FCHI",
