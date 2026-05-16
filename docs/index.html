@@ -135,7 +135,19 @@ tr:hover td{background:rgba(0,0,0,.02)}
 .broker-linxea{background:#fef3e0;color:#7a4500}
 </style>
 </head>
-<body>
+<body onload="checkPassword()">
+<script>
+function checkPassword() {
+  const saved = sessionStorage.getItem('pt_auth');
+  if (saved === 'ok') return;
+  const pwd = prompt('Pascal Terminal — Mot de passe :');
+  if (pwd === 'Jeantet2026!') {
+    sessionStorage.setItem('pt_auth', 'ok');
+  } else {
+    document.body.innerHTML = '<div style="text-align:center;padding:100px;font-family:sans-serif;color:#888">Accès refusé</div>';
+  }
+}
+</script>
 
 <!-- TOPBAR -->
 <div class="topbar">
