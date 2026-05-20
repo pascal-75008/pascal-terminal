@@ -274,7 +274,7 @@ function toast(msg, ok=true) {
 // ─── LOAD DATA ───────────────────────────────────────────────────────────────
 async function loadData() {
   try {
-  const r = await fetch('/pascal-terminal/latest_briefing.json?t=' + Date.now());
+  const r = await fetch('latest_briefing.json?t=' + Date.now());
     if (!r.ok) throw new Error('Briefing non disponible');
     DDATA = await r.json();
 try {
