@@ -276,7 +276,11 @@ async function loadData() {
   try {
   const r = await fetch('/pascal-terminal/latest_briefing.json?t=' + Date.now());
     if (!r.ok) throw new Error('Briefing non disponible');
-    DATA = await r.json();
+    DDATA = await r.json();
+try {
+  const r2 = await fetch('/pascal-terminal/positions.json?t=' + Date.now());
+  if (r2.ok) DATA.portfolio.positions = await r2.json();
+} catch(e) {}
     const a = DATA.analysis || {};
     const genAt = (DATA.generated_at||'').slice(0,16).replace('T',' ');
     document.getElementById('topbar-meta').textContent =
