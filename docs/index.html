@@ -237,24 +237,54 @@ function showTab(id,btn) { document.querySelectorAll('.section').forEach(s=>s.cl
 // ── YAHOO FINANCE VIA PROXY ───────────────────────────────────────────────────
 async function fetchPrice(ticker) {
   if (!ticker) return null;
-  const proxies = [
+
+  // Nettoyage ticker pour Yahoo Finance
+  const clean = ticker.replace('.PA','').replace('.DE','').replace('.AS','');
+
+  const endpoints = [
+    // Yahoo Finance direct (marche parfois)
     `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=5d`,
     `https://query2.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=5d`,
+    // Via proxy CORS public
+    `https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=5d`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/'+ticker+'?interval=1d&range=5d')}`,
   ];
-  for (const url of proxies) {
+
+  for (const url of endpoints) {
     try {
-      const r = await fetch(url, { headers: {'User-Agent':'Mozilla/5.0'} });
+      const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
       if (!r.ok) continue;
       const d = await r.json();
       const res = d?.chart?.result?.[0];
       if (!res) continue;
       const closes = (res.indicators?.quote?.[0]?.close||[]).filter(c=>c!=null);
+      if (!closes.length) continue;
       const price = res.meta?.regularMarketPrice || closes[closes.length-1];
-      const chg = closes.length>=2 ? (closes[closes.length-1]-closes[0])/closes[0]*100 : 0;
-      const currency = res.meta?.currency || 'USD';
-      return { price: Math.round(price*100)/100, week_chg: Math.round(chg*10)/10, currency };
+      const prev = closes[0];
+      const chg = prev ? (closes[closes.length-1]-prev)/prev*100 : 0;
+      return {
+        price: Math.round(price*100)/100,
+        week_chg: Math.round(chg*10)/10,
+        currency: res.meta?.currency || 'USD'
+      };
     } catch(e) { continue; }
   }
+
+  // Fallback: Yahoo Finance v10 (autre endpoint)
+  try {
+    const url = `https://corsproxy.io/?https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=price`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(6000) });
+    const d = await r.json();
+    const price = d?.quoteSummary?.result?.[0]?.price;
+    if (price) {
+      return {
+        price: Math.round((price.regularMarketPrice?.raw||0)*100)/100,
+        week_chg: Math.round((price.regularMarketChangePercent?.raw||0)*100*10)/10,
+        currency: price.currency || 'USD'
+      };
+    }
+  } catch(e) {}
+
   return null;
 }
 
