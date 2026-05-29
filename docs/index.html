@@ -293,6 +293,88 @@ async function fetchEurUsd() {
   return d?.price || 1.13;
 }
 
+// ── ISIN → TICKER YAHOO FINANCE ──────────────────────────────────────────────
+const ISIN_TO_TICKER = {
+  // Boursorama — Actions françaises
+  'FR0000052292': 'RMS.PA',   // Hermès
+  'FR0000120578': 'SAN.PA',   // Sanofi
+  'FR0010220475': 'ALO.PA',   // Alstom
+  'FR0010908533': 'EDEN.PA',  // Edenred
+  'FR0000130395': 'RCO.PA',   // Rémy Cointreau
+  'FR0014003TT8': 'DSY.PA',   // Dassault Systèmes
+  'FR0000121014': 'MC.PA',    // LVMH
+  'FR0000125486': 'DG.PA',    // Vinci
+  'FR0000120693': 'RI.PA',    // Pernod Ricard
+  'FR0000125338': 'CAP.PA',   // Capgemini
+  'FR0014005HJ9': 'OVH.PA',   // OVHcloud
+  'FR0000120321': 'OR.PA',    // L'Oréal
+  'FR0000131104': 'BNP.PA',   // BNP Paribas
+  'FR0013214145': 'SMCP.PA',  // SMCP
+  'FR0010386334': 'CLARI.PA', // Clariane
+  'FR0000121667': 'EL.PA',    // EssilorLuxottica
+  'FR0013227113': 'SOI.PA',   // Soitec
+  'FR0000120859': 'NK.PA',    // Imerys
+  'FR001400BMH7': 'TRACT.PA', // Teract
+  'FR0000133308': 'ORA.PA',   // Orange
+  'DE0007236101': 'SIE.DE',   // Siemens
+  'FR0011950732': 'ELIOR.PA', // Elior
+  'FR0000120073': 'AI.PA',    // Air Liquide
+  'FR0000120172': 'CA.PA',    // Carrefour
+  'FR0000120271': 'TTE.PA',   // TotalEnergies
+  'FR0010208488': 'ENGI.PA',  // Engie
+  'FR0014000MR3': 'ERF.PA',   // Eurofins
+  'FR0000039299': 'BOL.PA',   // Bolloré
+  'FR0000124570': 'POM.PA',   // OPmobility
+  'FR0010907956': 'ALCAR.PA', // Carmat
+  'FR0000053399': null,        // CNIM (en liquidation)
+  'FR0014017CN7': null,        // EssilorLuxott DO26
+  // ETF français
+  'FR0013412269': 'PUST.PA',  // Amundi PEA US Tech
+  'FR0011882364': 'WATR.PA',  // Amundi PEA Eau
+  'IE00BG0J4C88': 'LOCK.PA',  // iShares Digital Security
+  'LU1834986900': 'HLTH.PA',  // Amundi Stoxx Health
+  // Actions US cotées sur Boursorama
+  'US02079K3059': 'GOOGL',    // Alphabet A
+  'US02079K1079': 'GOOG',     // Alphabet C
+  'LU1778762911': 'SPOT',     // Spotify
+  'NL0010273215': 'ASML',     // ASML
+  'US11135F1012': 'AVGO',     // Broadcom
+  'US01609W1027': 'BABA',     // Alibaba
+  'US88034P1093': 'TCEHY',    // Tencent ADR
+  'US5951121038': 'MU',       // Micron
+  'US22788C1053': 'CRWD',     // CrowdStrike
+  'US21873S1087': 'CRWV',     // CoreWeave
+  'US65339F1012': 'NEE',      // NextEra Energy
+  'US4385161066': 'HON',      // Honeywell
+  'US46120E6023': 'ISRG',     // Intuitive Surgical
+  'US7223041028': 'PDD',      // PDD Holdings
+  'US3696043013': 'GE',       // GE Aerospace
+  'US0567521085': 'BIDU',     // Baidu
+  'US0090661010': 'ABNB',     // Airbnb
+  'US79466L3024': 'CRM',      // Salesforce
+  'US83443Q1031': 'SLGD',     // Solstice
+  'US92766K4031': 'SPCE',     // Virgin Galactic
+  'US62914V1061': 'NIO',      // NIO
+  'US02156K1034': null,        // Optimum RG
+  // ETF Linxea (pas de ticker Yahoo direct)
+  'LU0533033667': null,  // Amundi MSCI World IT
+  'FR0011170182': null,  // Ofi Precious Metals
+  'FR0007009139': null,  // R-co Convertibles
+  'FR0013486446': null,  // FCPR Ardian
+  'LU1829221024': 'QQQ', // Amundi Nasdaq-100 (approx)
+};
+
+function getYahooTicker(pos) {
+  // Si le ticker ressemble à un ISIN (12 chars alphanums), convertir
+  const t = pos.ticker || '';
+  if (t.length === 12 && /^[A-Z]{2}/.test(t)) {
+    return ISIN_TO_TICKER[t] || null;
+  }
+  // Sinon c'est déjà un ticker Yahoo
+  return t || null;
+}
+
+
 // ── PRICE REFRESH ─────────────────────────────────────────────────────────────
 async function refreshPrices() {
   if (!DATA || !DATA.portfolio) return;
@@ -305,7 +387,7 @@ async function refreshPrices() {
   btn.textContent = '↻ Actualisation...';
   btn.disabled = true;
 
-  const positions = DATA.portfolio.positions.filter(p => p.ticker && p.broker !== 'linxea');
+  const positions = DATA.portfolio.positions.filter(p => getYahooTicker(p) && p.broker !== 'linxea');
   let done = 0;
 
   label.textContent = 'Récupération des cours live...';
@@ -318,7 +400,8 @@ async function refreshPrices() {
   let total_eur = 0, total_pv = 0;
 
   for (const pos of positions) {
-    const market = await fetchPrice(pos.ticker);
+    const yhTicker = getYahooTicker(pos);
+    const market = yhTicker ? await fetchPrice(yhTicker) : null;
     if (market) {
       pos.price = market.price;
       pos.week_chg = market.week_chg;
@@ -391,7 +474,7 @@ async function loadData() {
 // Auto-refresh silencieux au chargement de la page
 async function autoRefreshPrices() {
   if (!DATA || !DATA.portfolio || !DATA.portfolio.positions) return;
-  const positions = DATA.portfolio.positions.filter(p => p.ticker && p.broker !== 'linxea');
+  const positions = DATA.portfolio.positions.filter(p => getYahooTicker(p) && p.broker !== 'linxea');
   if (!positions.length) return;
 
   console.log('Auto-refresh cours Yahoo Finance...');
@@ -402,7 +485,8 @@ async function autoRefreshPrices() {
   let updated = 0;
 
   for (const pos of positions) {
-    const market = await fetchPrice(pos.ticker);
+    const yhTicker = getYahooTicker(pos);
+    const market = yhTicker ? await fetchPrice(yhTicker) : null;
     if (market) {
       pos.price = market.price;
       pos.week_chg = market.week_chg;
@@ -766,12 +850,13 @@ async function handleFiles(files) {
   const eurusd=await fetchEurUsd();
 
   // Récupérer les cours pour chaque position avec ticker
-  const withTicker=allPositions.filter(p=>p.ticker&&p.broker!=='linxea');
+  const withTicker=allPositions.filter(p=>getYahooTicker(p)&&p.broker!=='linxea');
   let done=0,total_eur=0,total_pv=0;
 
   label.textContent='Récupération des cours live...';
   for(const pos of withTicker){
-    const market=await fetchPrice(pos.ticker);
+    const yhTicker=getYahooTicker(pos);
+    const market=yhTicker?await fetchPrice(yhTicker):null;
     if(market){
       pos.price=market.price;
       pos.week_chg=market.week_chg;
