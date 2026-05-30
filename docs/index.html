@@ -340,7 +340,7 @@ const ISIN_TO_TICKER = {
   'NL0010273215': 'ASML',     // ASML
   'US11135F1012': 'AVGO',     // Broadcom
   'US01609W1027': 'BABA',     // Alibaba
-  'US88034P1093': 'TCEHY',    // Tencent ADR
+  'US88034P1093': 'TCEHY',    // Tencent ADR — prix en USD
   'US5951121038': 'MU',       // Micron
   'US22788C1053': 'CRWD',     // CrowdStrike
   'US21873S1087': 'CRWV',     // CoreWeave
@@ -364,14 +364,27 @@ const ISIN_TO_TICKER = {
   'LU1829221024': 'QQQ', // Amundi Nasdaq-100 (approx)
 };
 
+// ISINs à exclure du refresh (prix non fiables ou en liquidation)
+const ISIN_SKIP = new Set([
+  'US88034P1093', // Tencent ADR Boursorama — coté en EUR, incompatible Yahoo USD
+  'FR0000053399', // CNIM — en liquidation
+  'FR0014017CN7', // EssilorLuxott DO26
+  'US02156K1034', // Optimum RG
+  'QS0004019632', // Blast Army
+  'QS0004059927', // Blast Army 2
+]);
+
 function getYahooTicker(pos) {
-  // Si le ticker ressemble à un ISIN (12 chars alphanums), convertir
+  if (pos.broker === 'linxea') return null; // fonds — pas de ticker Yahoo
   const t = pos.ticker || '';
+  if (!t) return null;
+  if (ISIN_SKIP.has(t)) return null; // exclusions manuelles
+  // Si ISIN (12 chars commençant par 2 lettres), convertir
   if (t.length === 12 && /^[A-Z]{2}/.test(t)) {
     return ISIN_TO_TICKER[t] || null;
   }
-  // Sinon c'est déjà un ticker Yahoo
-  return t || null;
+  // Déjà un ticker Yahoo
+  return t;
 }
 
 
@@ -387,7 +400,7 @@ async function refreshPrices() {
   btn.textContent = '↻ Actualisation...';
   btn.disabled = true;
 
-  const positions = DATA.portfolio.positions.filter(p => getYahooTicker(p) && p.broker !== 'linxea');
+  const positions = DATA.portfolio.positions.filter(p => getYahooTicker(p));
   let done = 0;
 
   label.textContent = 'Récupération des cours live...';
@@ -474,7 +487,7 @@ async function loadData() {
 // Auto-refresh silencieux au chargement de la page
 async function autoRefreshPrices() {
   if (!DATA || !DATA.portfolio || !DATA.portfolio.positions) return;
-  const positions = DATA.portfolio.positions.filter(p => getYahooTicker(p) && p.broker !== 'linxea');
+  const positions = DATA.portfolio.positions.filter(p => getYahooTicker(p));
   if (!positions.length) return;
 
   console.log('Auto-refresh cours Yahoo Finance...');
@@ -503,7 +516,7 @@ async function autoRefreshPrices() {
     await new Promise(r => setTimeout(r, 150));
   }
 
-  // Recalculer totaux
+  // Recalculer totaux (inclure TOUTES les positions, pas seulement celles avec ticker)
   DATA.portfolio.positions.forEach(p => {
     total_eur += p.value_eur || 0;
     total_pv += p.pv_eur || 0;
@@ -643,6 +656,7 @@ function renderOpps() {
 function renderPtf() {
   if (!DATA) return;
   const p=DATA.portfolio||{};
+  // Afficher TOUTES les positions (pas de filtre sur ticker)
   let positions=[...(p.positions||[])].filter(x=>brokerFilter==='all'||x.broker===brokerFilter);
   document.getElementById('ptf-title').textContent=`${positions.length} positions · ${Math.round(p.total_value_eur||0).toLocaleString('fr-FR')}€`;
 
@@ -850,7 +864,7 @@ async function handleFiles(files) {
   const eurusd=await fetchEurUsd();
 
   // Récupérer les cours pour chaque position avec ticker
-  const withTicker=allPositions.filter(p=>getYahooTicker(p)&&p.broker!=='linxea');
+  const withTicker=allPositions.filter(p=>getYahooTicker(p));
   let done=0,total_eur=0,total_pv=0;
 
   label.textContent='Récupération des cours live...';
