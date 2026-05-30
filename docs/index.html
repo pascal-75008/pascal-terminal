@@ -294,99 +294,108 @@ async function fetchEurUsd() {
 }
 
 // ── ISIN → TICKER YAHOO FINANCE ──────────────────────────────────────────────
+// Pour Boursorama : TOUS les prix sont en EUR (même les actions US)
+// Yahoo Finance donne les prix en USD pour les actions US
+// → on récupère le cours Yahoo et on divise par EUR/USD pour obtenir le prix EUR
 const ISIN_TO_TICKER = {
-  // Boursorama — Actions françaises
-  'FR0000052292': 'RMS.PA',   // Hermès
-  'FR0000120578': 'SAN.PA',   // Sanofi
-  'FR0010220475': 'ALO.PA',   // Alstom
-  'FR0010908533': 'EDEN.PA',  // Edenred
-  'FR0000130395': 'RCO.PA',   // Rémy Cointreau
-  'FR0014003TT8': 'DSY.PA',   // Dassault Systèmes
-  'FR0000121014': 'MC.PA',    // LVMH
-  'FR0000125486': 'DG.PA',    // Vinci
-  'FR0000120693': 'RI.PA',    // Pernod Ricard
-  'FR0000125338': 'CAP.PA',   // Capgemini
-  'FR0014005HJ9': 'OVH.PA',   // OVHcloud
-  'FR0000120321': 'OR.PA',    // L'Oréal
-  'FR0000131104': 'BNP.PA',   // BNP Paribas
-  'FR0013214145': 'SMCP.PA',  // SMCP
-  'FR0010386334': 'CLARI.PA', // Clariane
-  'FR0000121667': 'EL.PA',    // EssilorLuxottica
-  'FR0013227113': 'SOI.PA',   // Soitec
-  'FR0000120859': 'NK.PA',    // Imerys
-  'FR001400BMH7': 'TRACT.PA', // Teract
-  'FR0000133308': 'ORA.PA',   // Orange
-  'DE0007236101': 'SIE.DE',   // Siemens
-  'FR0011950732': 'ELIOR.PA', // Elior
-  'FR0000120073': 'AI.PA',    // Air Liquide
-  'FR0000120172': 'CA.PA',    // Carrefour
-  'FR0000120271': 'TTE.PA',   // TotalEnergies
-  'FR0010208488': 'ENGI.PA',  // Engie
-  'FR0014000MR3': 'ERF.PA',   // Eurofins
-  'FR0000039299': 'BOL.PA',   // Bolloré
-  'FR0000124570': 'POM.PA',   // OPmobility
-  'FR0010907956': 'ALCAR.PA', // Carmat
-  'FR0000053399': null,        // CNIM (en liquidation)
-  'FR0014017CN7': null,        // EssilorLuxott DO26
-  // ETF français
-  'FR0013412269': 'PUST.PA',  // Amundi PEA US Tech
-  'FR0011882364': 'WATR.PA',  // Amundi PEA Eau
-  'IE00BG0J4C88': 'LOCK.PA',  // iShares Digital Security
-  'LU1834986900': 'HLTH.PA',  // Amundi Stoxx Health
-  // Actions US cotées sur Boursorama
-  'US02079K3059': 'GOOGL',    // Alphabet A
-  'US02079K1079': 'GOOG',     // Alphabet C
-  'LU1778762911': 'SPOT',     // Spotify
-  'NL0010273215': 'ASML',     // ASML
-  'US11135F1012': 'AVGO',     // Broadcom
-  'US01609W1027': 'BABA',     // Alibaba
-  'US88034P1093': 'TCEHY',    // Tencent ADR — prix en USD
-  'US5951121038': 'MU',       // Micron
-  'US22788C1053': 'CRWD',     // CrowdStrike
-  'US21873S1087': 'CRWV',     // CoreWeave
-  'US65339F1012': 'NEE',      // NextEra Energy
-  'US4385161066': 'HON',      // Honeywell
-  'US46120E6023': 'ISRG',     // Intuitive Surgical
-  'US7223041028': 'PDD',      // PDD Holdings
-  'US3696043013': 'GE',       // GE Aerospace
-  'US0567521085': 'BIDU',     // Baidu
-  'US0090661010': 'ABNB',     // Airbnb
-  'US79466L3024': 'CRM',      // Salesforce
-  'US83443Q1031': 'SLGD',     // Solstice
-  'US92766K4031': 'SPCE',     // Virgin Galactic
-  'US62914V1061': 'NIO',      // NIO
-  'US02156K1034': null,        // Optimum RG
-  // ETF Linxea (pas de ticker Yahoo direct)
-  'LU0533033667': null,  // Amundi MSCI World IT
-  'FR0011170182': null,  // Ofi Precious Metals
-  'FR0007009139': null,  // R-co Convertibles
-  'FR0013486446': null,  // FCPR Ardian
-  'LU1829221024': 'QQQ', // Amundi Nasdaq-100 (approx)
+  // Actions françaises — prix Yahoo en EUR, compatible direct
+  'FR0000052292': {t:'RMS.PA',  usd:false}, // Hermès
+  'FR0000120578': {t:'SAN.PA',  usd:false}, // Sanofi
+  'FR0010220475': {t:'ALO.PA',  usd:false}, // Alstom
+  'FR0010908533': {t:'EDEN.PA', usd:false}, // Edenred
+  'FR0000130395': {t:'RCO.PA',  usd:false}, // Rémy Cointreau
+  'FR0000120073': {t:'AI.PA',   usd:false}, // Air Liquide
+  'FR0000120271': {t:'TTE.PA',  usd:false}, // TotalEnergies
+  'FR0010208488': {t:'ENGI.PA', usd:false}, // Engie
+  'FR0013214145': {t:'SMCP.PA', usd:false}, // SMCP
+  'FR0000124570': {t:'POM.PA',  usd:false}, // OPmobility
+  'FR0000120859': {t:'NK.PA',   usd:false}, // Imerys
+  'FR0011882364': {t:'WATR.PA', usd:false}, // Amundi PEA Eau
+  'FR0010386334': {t:'CLARI.PA',usd:false}, // Clariane
+  'FR0000120172': {t:'CA.PA',   usd:false}, // Carrefour
+  'FR0000120693': {t:'RI.PA',   usd:false}, // Pernod Ricard
+  'FR0000125486': {t:'DG.PA',   usd:false}, // Vinci
+  'FR0014000MR3': {t:'ERF.PA',  usd:false}, // Eurofins
+  'FR0013227113': {t:'SOI.PA',  usd:false}, // Soitec
+  'FR0011950732': {t:'ELIOR.PA',usd:false}, // Elior
+  'FR0014003TT8': {t:'DSY.PA',  usd:false}, // Dassault Systèmes
+  'FR0013412269': {t:'PUST.PA', usd:false}, // Amundi PEA US Tech
+  'FR0000131104': {t:'BNP.PA',  usd:false}, // BNP Paribas
+  'FR0000121014': {t:'MC.PA',   usd:false}, // LVMH
+  'FR0000121667': {t:'EL.PA',   usd:false}, // EssilorLuxottica
+  'FR0000121972': {t:'SU.PA',   usd:false}, // Schneider Electric
+  'FR0000120321': {t:'OR.PA',   usd:false}, // L'Oréal
+  'FR0000039299': {t:'BOL.PA',  usd:false}, // Bolloré
+  'FR0014005HJ9': {t:'OVH.PA',  usd:false}, // OVHcloud
+  'FR0000133308': {t:'ORA.PA',  usd:false}, // Orange
+  'FR0000125338': {t:'CAP.PA',  usd:false}, // Capgemini
+  'FR001400BMH7': {t:'TRACT.PA',usd:false}, // Teract
+  'DE0007236101': {t:'SIE.DE',  usd:false}, // Siemens
+  'NL0010273215': {t:'ASML.AS', usd:false}, // ASML (Amsterdam, EUR)
+  'LU1834986900': {t:'VGHEA.PA',usd:false}, // Amundi Stoxx Healthcare
+  'IE00BG0J4C88': {t:'LOCK.AS', usd:false}, // iShares Digital Security (EUR)
+  // Actions US cotées en EUR sur Boursorama
+  // Yahoo donne le prix en USD → diviser par EUR/USD pour obtenir EUR
+  'LU1778762911': {t:'SPOT',    usd:true},  // Spotify
+  'NL0010273215': {t:'ASML',    usd:true},  // ASML (aussi NYSE)
+  'US11135F1012': {t:'AVGO',    usd:true},  // Broadcom
+  'US65339F1012': {t:'NEE',     usd:true},  // NextEra Energy
+  'US5951121038': {t:'MU',      usd:true},  // Micron
+  'US22788C1053': {t:'CRWD',    usd:true},  // CrowdStrike
+  'US3696043013': {t:'GE',      usd:true},  // GE Aerospace
+  'US79466L3024': {t:'CRM',     usd:true},  // Salesforce
+  'US4385161066': {t:'HON',     usd:true},  // Honeywell
+  'US7223041028': {t:'PDD',     usd:true},  // PDD Holdings
+  'US0090661010': {t:'ABNB',    usd:true},  // Airbnb
+  'US01609W1027': {t:'BABA',    usd:true},  // Alibaba
+  'US46120E6023': {t:'ISRG',    usd:true},  // Intuitive Surgical
+  'US0567521085': {t:'BIDU',    usd:true},  // Baidu
+  'US21873S1087': {t:'CRWV',    usd:true},  // CoreWeave
+  'US02079K1079': {t:'GOOG',    usd:true},  // Alphabet C
+  'US02079K3059': {t:'GOOGL',   usd:true},  // Alphabet A
+  'US62914V1061': {t:'NIO',     usd:true},  // NIO
+  'US83443Q1031': {t:'SOLV',    usd:true},  // Solstice
+  // Exclusions — prix non récupérables via Yahoo
+  'QS0004019632': null, // Blast Army
+  'QS0004059927': null, // Blast Army 2
+  'FR0000053399': null, // CNIM (liquidation)
+  'FR0014017CN7': null, // EssilorLuxott DO26
+  'US02156K1034': null, // Optimum RG
+  'US88034P1093': null, // Tencent ADR EUR (incompatible)
+  'FR0010907956': null, // Carmat
+  'US92766K4031': {t:'SPCE', usd:true},    // Virgin Galactic
 };
 
-// ISINs à exclure du refresh (prix non fiables ou en liquidation)
-const ISIN_SKIP = new Set([
-  'US88034P1093', // Tencent ADR Boursorama — coté en EUR, incompatible Yahoo USD
-  'FR0000053399', // CNIM — en liquidation
-  'FR0014017CN7', // EssilorLuxott DO26
-  'US02156K1034', // Optimum RG
-  'QS0004019632', // Blast Army
-  'QS0004059927', // Blast Army 2
+// ISINs IB déjà en vrais tickers Yahoo (USD direct, pas de conversion)
+const IB_TICKERS_DIRECT = new Set([
+  'AMD','AMZN','AAPL','BIIB','ENPH','META','MSFT','NVDA','ONDS','PLTR',
+  'PANW','ROK','RTX','SNAP','TSLA','PATH','ZS','IBM','JBL','INTC',
+  'AVAV','GFS','KD','CPWR','DFNM','TVRD','TSM','NFLX','GRID',
 ]);
 
 function getYahooTicker(pos) {
-  if (pos.broker === 'linxea') return null; // fonds — pas de ticker Yahoo
+  if (pos.broker === 'linxea') return null;
   const t = pos.ticker || '';
   if (!t) return null;
-  if (ISIN_SKIP.has(t)) return null; // exclusions manuelles
-  // Si ISIN (12 chars commençant par 2 lettres), convertir
-  if (t.length === 12 && /^[A-Z]{2}/.test(t)) {
-    return ISIN_TO_TICKER[t] || null;
-  }
-  // Déjà un ticker Yahoo
-  return t;
-}
 
+  // IB : tickers directs Yahoo (USD)
+  if (pos.broker === 'interactive_brokers') {
+    if (t === 'IE00BMWXKN31' || t === 'IE000J80JTL1') return null; // ETFs EUR sans ticker simple
+    if (IB_TICKERS_DIRECT.has(t)) return {t, usd:false}; // prix en USD, déjà géré par value_eur IB
+    if (t.length === 12 && /^[A-Z]{2}/.test(t)) return null;
+    return {t, usd:false};
+  }
+
+  // Boursorama : conversion ISIN → ticker
+  if (t.length === 12 && /^[A-Z]{2}/.test(t)) {
+    const mapped = ISIN_TO_TICKER[t];
+    if (mapped === undefined) return null; // ISIN non mappé
+    if (mapped === null) return null;      // exclusion explicite
+    return mapped; // {t, usd} ou null
+  }
+
+  return null;
+}
 
 // ── PRICE REFRESH ─────────────────────────────────────────────────────────────
 async function refreshPrices() {
@@ -400,7 +409,7 @@ async function refreshPrices() {
   btn.textContent = '↻ Actualisation...';
   btn.disabled = true;
 
-  const positions = DATA.portfolio.positions.filter(p => getYahooTicker(p));
+  const positions = DATA.portfolio.positions.filter(p => getYahooTicker(p) !== null);
   let done = 0;
 
   label.textContent = 'Récupération des cours live...';
@@ -413,17 +422,17 @@ async function refreshPrices() {
   let total_eur = 0, total_pv = 0;
 
   for (const pos of positions) {
-    const yhTicker = getYahooTicker(pos);
-    const market = yhTicker ? await fetchPrice(yhTicker) : null;
+    const yhInfo = getYahooTicker(pos);
+    const market = yhInfo ? await fetchPrice(yhInfo.t) : null;
     if (market) {
-      pos.price = market.price;
+      const priceEur = yhInfo.usd ? market.price / eurusd : market.price;
+      pos.price = Math.round(priceEur * 100) / 100;
       pos.week_chg = market.week_chg;
-      const fx = pos.currency === 'USD' ? 1/eurusd : 1;
-      if (pos.qty) {
-        pos.value_eur = Math.round(market.price * pos.qty * fx);
+      if (pos.broker !== 'interactive_brokers' && pos.qty) {
+        pos.value_eur = Math.round(priceEur * pos.qty);
         if (pos.pru && pos.pru > 0) {
-          pos.pv_eur = Math.round((market.price - pos.pru) * pos.qty * fx);
-          pos.pv_pct = Math.round((market.price - pos.pru) / pos.pru * 1000) / 10;
+          pos.pv_eur = Math.round((priceEur - pos.pru) * pos.qty);
+          pos.pv_pct = Math.round((priceEur - pos.pru) / pos.pru * 1000) / 10;
         }
       }
     }
@@ -487,7 +496,7 @@ async function loadData() {
 // Auto-refresh silencieux au chargement de la page
 async function autoRefreshPrices() {
   if (!DATA || !DATA.portfolio || !DATA.portfolio.positions) return;
-  const positions = DATA.portfolio.positions.filter(p => getYahooTicker(p));
+  const positions = DATA.portfolio.positions.filter(p => getYahooTicker(p) !== null);
   if (!positions.length) return;
 
   console.log('Auto-refresh cours Yahoo Finance...');
@@ -498,20 +507,25 @@ async function autoRefreshPrices() {
   let updated = 0;
 
   for (const pos of positions) {
-    const yhTicker = getYahooTicker(pos);
-    const market = yhTicker ? await fetchPrice(yhTicker) : null;
+    const yhInfo = getYahooTicker(pos);
+    const market = yhInfo ? await fetchPrice(yhInfo.t) : null;
     if (market) {
-      pos.price = market.price;
+      // Si usd:true = prix Yahoo en USD, Boursorama le cote en EUR → convertir
+      const priceEur = yhInfo.usd ? market.price / eurusd : market.price;
+      pos.price = Math.round(priceEur * 100) / 100;
       pos.week_chg = market.week_chg;
-      const fx = pos.currency === 'USD' ? 1/eurusd : 1;
-      if (pos.qty) {
-        pos.value_eur = Math.round(market.price * pos.qty * fx);
+      // Pour IB : on utilise value_eur de l'export (déjà converti)
+      if (pos.broker === 'interactive_brokers') {
+        // Ne pas recalculer value_eur pour IB — garder celui de l'export
+        updated++;
+      } else if (pos.qty) {
+        pos.value_eur = Math.round(priceEur * pos.qty);
         if (pos.pru && pos.pru > 0) {
-          pos.pv_eur = Math.round((market.price - pos.pru) * pos.qty * fx);
-          pos.pv_pct = Math.round((market.price - pos.pru) / pos.pru * 1000) / 10;
+          pos.pv_eur = Math.round((priceEur - pos.pru) * pos.qty);
+          pos.pv_pct = Math.round((priceEur - pos.pru) / pos.pru * 1000) / 10;
         }
+        updated++;
       }
-      updated++;
     }
     await new Promise(r => setTimeout(r, 150));
   }
@@ -864,13 +878,13 @@ async function handleFiles(files) {
   const eurusd=await fetchEurUsd();
 
   // Récupérer les cours pour chaque position avec ticker
-  const withTicker=allPositions.filter(p=>getYahooTicker(p));
+  const withTicker=allPositions.filter(p=>getYahooTicker(p)!==null);
   let done=0,total_eur=0,total_pv=0;
 
   label.textContent='Récupération des cours live...';
   for(const pos of withTicker){
-    const yhTicker=getYahooTicker(pos);
-    const market=yhTicker?await fetchPrice(yhTicker):null;
+    const yhInfo=getYahooTicker(pos);
+    const market=yhInfo?await fetchPrice(yhInfo.t):null;
     if(market){
       pos.price=market.price;
       pos.week_chg=market.week_chg;
