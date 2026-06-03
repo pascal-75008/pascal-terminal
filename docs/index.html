@@ -13,12 +13,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   .card-inner{background:#242426!important}
   .comment-box{background:#0a0a0a}
   .upload-z{border-color:rgba(255,255,255,0.15)}
-  .upload-z:hover{background:#1a2e1a;border-color:#3B6D11}
+  .upload-z:hover,.upload-z.drag{background:#1a2e1a;border-color:#3B6D11}
   .flt{color:#888;border-color:rgba(255,255,255,0.15)}
   td{border-color:rgba(255,255,255,0.05)}
   th{border-color:rgba(255,255,255,0.1);color:#888}
   tr:hover td{background:rgba(255,255,255,0.03)}
-  .progress-bar{background:#222}
+  select,input{background:#1c1c1e;color:#f0f0f0;border-color:#333}
 }
 .topbar{background:#111;padding:11px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 .logo{color:#fff;font-size:15px;font-weight:500;display:flex;align-items:center;gap:8px}
@@ -75,7 +75,7 @@ tr:hover td{background:rgba(0,0,0,.02)}
 .upload-z:hover,.upload-z.drag{border-color:#3B6D11;background:#EAF3DE}
 .upload-z input{display:none}
 .upload-z h3{font-size:14px;font-weight:500;margin-bottom:6px}
-.upload-z p{font-size:12px;color:#888}
+.upload-z p{font-size:12px;color:#888;margin-top:4px}
 .macro-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
 @media(max-width:700px){.macro-grid{grid-template-columns:repeat(2,1fr)}}
 .macro-item{background:#fff;border:0.5px solid rgba(0,0,0,0.08);border-radius:10px;padding:12px 14px}
@@ -100,13 +100,16 @@ tr:hover td{background:rgba(0,0,0,.02)}
 .pwd-err{color:#A32D2D;font-size:13px;height:18px}
 .progress-bar{background:#eee;border-radius:4px;height:6px;margin:8px 0;overflow:hidden}
 .progress-fill{height:100%;background:#3B6D11;border-radius:4px;transition:width .3s}
-.refresh-btn{padding:6px 14px;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;font-size:12px;cursor:pointer;background:transparent;color:#888;transition:all .15s}
-.refresh-btn:hover{background:#EAF3DE;color:#3B6D11;border-color:#3B6D11}
+.hist-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.hist-controls select{padding:6px 10px;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;background:#fff;color:#1a1a1a}
+.hist-controls label{font-size:12px;color:#888}
+.hist-badge-pos{background:#EAF3DE;color:#3B6D11;padding:2px 6px;border-radius:4px;font-size:12px;font-weight:500}
+.hist-badge-neg{background:#FCEBEB;color:#A32D2D;padding:2px 6px;border-radius:4px;font-size:12px;font-weight:500}
+.hist-badge-neu{background:#F1EFE8;color:#888;padding:2px 6px;border-radius:4px;font-size:12px}
 </style>
 </head>
 <body>
 
-<!-- MOT DE PASSE -->
 <div class="pwd-screen" id="pwd-screen">
   <h2>Pascal Terminal</h2>
   <input type="password" id="pwd-input" placeholder="Mot de passe" onkeydown="if(event.key==='Enter')checkPwd()">
@@ -115,7 +118,7 @@ tr:hover td{background:rgba(0,0,0,.02)}
 </div>
 
 <div class="topbar">
-  <div class="logo"><span class="dot"></span>Pascal Terminal <span style="color:#555;font-size:11px;font-weight:400;margin-left:2px">v3</span></div>
+  <div class="logo"><span class="dot"></span>Pascal Terminal <span style="color:#555;font-size:11px;font-weight:400;margin-left:2px">v4</span></div>
   <div class="topbar-right" id="topbar-meta">Chargement...</div>
 </div>
 
@@ -124,6 +127,7 @@ tr:hover td{background:rgba(0,0,0,.02)}
   <button class="nav-btn" onclick="showTab('opportunites',this)">Opportunités</button>
   <button class="nav-btn" onclick="showTab('portefeuille',this)">Portefeuille</button>
   <button class="nav-btn" onclick="showTab('macro',this)">Macro</button>
+  <button class="nav-btn" onclick="showTab('historique',this)">Historique</button>
   <button class="nav-btn" onclick="showTab('import',this)">Importer</button>
 </div>
 
@@ -139,10 +143,7 @@ tr:hover td{background:rgba(0,0,0,.02)}
 
 <div id="portefeuille" class="section">
   <div class="section-bar">
-    <div style="display:flex;align-items:center;gap:10px">
-      <div id="ptf-title" style="font-size:13px;font-weight:500">Portefeuille</div>
-      <button class="refresh-btn" onclick="refreshPrices()" id="refresh-btn">↻ Actualiser les cours</button>
-    </div>
+    <div id="ptf-title" style="font-size:13px;font-weight:500">Portefeuille</div>
     <div class="filters" id="broker-filters">
       <button class="flt on" onclick="filterBroker('all',this)">Tous</button>
       <button class="flt" onclick="filterBroker('boursorama',this)">Boursorama</button>
@@ -150,7 +151,6 @@ tr:hover td{background:rgba(0,0,0,.02)}
       <button class="flt" onclick="filterBroker('linxea',this)">Linxea</button>
     </div>
   </div>
-  <div id="refresh-status"></div>
   <div class="card" style="padding:0;overflow:hidden">
     <div class="tscroll">
     <table>
@@ -175,21 +175,45 @@ tr:hover td{background:rgba(0,0,0,.02)}
   <div id="macro-content"><div style="padding:40px;text-align:center;color:#888">Chargement...</div></div>
 </div>
 
+<div id="historique" class="section">
+  <div class="card">
+    <div class="card-hd">Comparer deux périodes</div>
+    <div class="hist-controls">
+      <div>
+        <label>Date de référence</label><br>
+        <select id="hist-date1" onchange="renderHistorique()"></select>
+      </div>
+      <div style="font-size:20px;color:#888;padding-top:16px">→</div>
+      <div>
+        <label>Date de comparaison</label><br>
+        <select id="hist-date2" onchange="renderHistorique()"></select>
+      </div>
+      <button class="flt" onclick="clearHistory()" style="margin-top:16px;color:#A32D2D;border-color:#A32D2D">Effacer l'historique</button>
+    </div>
+    <div id="hist-summary" style="margin-bottom:14px"></div>
+  </div>
+  <div id="hist-content"></div>
+</div>
+
 <div id="import" class="section">
   <div class="card">
-    <div class="card-hd">Importer ton portefeuille — les cours se récupèrent automatiquement</div>
+    <div class="card-hd">Importer ton portefeuille</div>
+    <p style="font-size:12px;color:#888;margin-bottom:12px">
+      Les cours sont pris directement depuis tes exports — 100% fiables. 
+      La variation hebdomadaire est calculée automatiquement en comparant avec l'import précédent.
+    </p>
     <div class="upload-z" id="dropzone" onclick="document.getElementById('fileInput').click()">
       <input type="file" id="fileInput" multiple accept=".xlsx,.xls,.csv" onchange="handleFiles(this.files)">
       <h3>Glisse tes fichiers ici ou clique</h3>
-      <p>Interactive Brokers (.csv · export "Aperçu du portefeuille")</p>
       <p>Boursorama (.csv · export-positions-instantanees)</p>
+      <p>Interactive Brokers (.csv · Aperçu du portefeuille)</p>
       <p>Linxea (.xlsx · données financières)</p>
     </div>
     <div id="upload-status"></div>
-    <div id="upload-progress" style="display:none">
-      <div style="font-size:13px;color:#888;margin-bottom:6px" id="progress-label">Récupération des cours...</div>
+    <div id="upload-progress" style="display:none;padding:10px 0">
+      <div style="font-size:12px;color:#888;margin-bottom:4px" id="progress-label">Traitement...</div>
       <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
-      <div style="font-size:12px;color:#888;margin-top:4px" id="progress-detail"></div>
+      <div style="font-size:11px;color:#888;margin-top:3px" id="progress-detail"></div>
     </div>
   </div>
   <div class="g3">
@@ -210,258 +234,82 @@ function checkPwd() {
   if (v === 'Jeantet2026!') {
     sessionStorage.setItem('pt_ok','1');
     document.getElementById('pwd-screen').style.display = 'none';
-    loadData();
+    init();
   } else {
     document.getElementById('pwd-err').textContent = 'Mot de passe incorrect';
     document.getElementById('pwd-input').value = '';
   }
 }
-if (sessionStorage.getItem('pt_ok') === '1') {
-  document.getElementById('pwd-screen').style.display = 'none';
-}
+if (sessionStorage.getItem('pt_ok') === '1') document.getElementById('pwd-screen').style.display = 'none';
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let DATA = null;
 let sortCol = 'value_eur', sortDir = -1, brokerFilter = 'all';
+
+// ── HISTORIQUE (localStorage) ─────────────────────────────────────────────────
+const HIST_KEY = 'pascal_terminal_history';
+
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HIST_KEY) || '{}'); } catch(e) { return {}; }
+}
+
+function saveHistory(h) {
+  try { localStorage.setItem(HIST_KEY, JSON.stringify(h)); } catch(e) {
+    toast('⚠ Historique plein — effacez les anciennes données');
+  }
+}
+
+function saveSnapshot(date, positions) {
+  const h = loadHistory();
+  // Stocker cours par identifiant unique (name+broker)
+  const snap = {};
+  for (const p of positions) {
+    const key = `${p.broker}|${p.name}`;
+    snap[key] = { price: p.price, value_eur: p.value_eur, pv_eur: p.pv_eur, pv_pct: p.pv_pct };
+  }
+  h[date] = { date, snap, total_eur: positions.reduce((s,p)=>s+(p.value_eur||0),0), total_pv: positions.reduce((s,p)=>s+(p.pv_eur||0),0) };
+  // Garder max 52 semaines
+  const dates = Object.keys(h).sort();
+  if (dates.length > 52) delete h[dates[0]];
+  saveHistory(h);
+  return h;
+}
+
+function getWeekChg(positions) {
+  // Compare avec le snapshot le plus récent AVANT aujourd'hui
+  const h = loadHistory();
+  const today = new Date().toISOString().slice(0,10);
+  const dates = Object.keys(h).sort().filter(d => d < today);
+  if (!dates.length) return positions; // pas d'historique encore
+
+  const prevSnap = h[dates[dates.length-1]].snap;
+  return positions.map(p => {
+    const key = `${p.broker}|${p.name}`;
+    const prev = prevSnap[key];
+    if (prev && prev.price && p.price && prev.price > 0) {
+      p.week_chg = Math.round((p.price - prev.price) / prev.price * 1000) / 10;
+    }
+    return p;
+  });
+}
+
+function clearHistory() {
+  if (confirm('Effacer tout l\'historique de cours ?')) {
+    localStorage.removeItem(HIST_KEY);
+    toast('Historique effacé');
+    renderHistorique();
+  }
+}
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 const fN = (v,d=1) => v==null?'—':Number(v).toLocaleString('fr-FR',{maximumFractionDigits:d,minimumFractionDigits:d});
 const fE = v => { if(v==null)return'—'; const s=v>=0?'+':''; const c=v>=0?'pos':'neg'; return `<span class="${c}">${s}${Math.round(v).toLocaleString('fr-FR')}€</span>`; };
 const fP = v => { if(v==null)return'—'; const s=v>=0?'+':''; const c=v>=0?'pos':'neg'; return `<span class="${c}">${s}${fN(v)}%</span>`; };
 const badge = (t,c='bg-gray') => `<span class="badge ${c}">${t}</span>`;
-const brokerBadge = b => { const m={boursorama:['bg-blue','Boursorama'],interactive_brokers:['bg-green','IB'],linxea:['bg-amber','Linxea'],degiro:['bg-teal','DeGiro']}; const [cls,lbl]=m[b]||['bg-gray',b||'?']; return badge(lbl,cls); };
+const brokerBadge = b => { const m={boursorama:['bg-blue','Boursorama'],interactive_brokers:['bg-green','IB'],linxea:['bg-amber','Linxea']}; const [cls,lbl]=m[b]||['bg-gray',b||'?']; return badge(lbl,cls); };
 const actionBadge = t => { const m={ACHAT_CT:'bg-green',ACHAT_LT:'bg-teal',VENTE:'bg-red',ALLEGER:'bg-amber',SHORT:'bg-purple',SURVEILLER:'bg-blue',HEDGER:'bg-purple'}; return badge(t,m[t]||'bg-gray'); };
-function toast(msg, dur=3000) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),dur); }
-function showTab(id,btn) { document.querySelectorAll('.section').forEach(s=>s.classList.remove('active')); document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active')); document.getElementById(id).classList.add('active'); btn.classList.add('active'); }
-
-// ── YAHOO FINANCE VIA PROXY ───────────────────────────────────────────────────
-async function fetchPrice(ticker) {
-  if (!ticker) return null;
-
-  // Nettoyage ticker pour Yahoo Finance
-  const clean = ticker.replace('.PA','').replace('.DE','').replace('.AS','');
-
-  const endpoints = [
-    // Yahoo Finance direct (marche parfois)
-    `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=5d`,
-    `https://query2.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=5d`,
-    // Via proxy CORS public
-    `https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=5d`,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/'+ticker+'?interval=1d&range=5d')}`,
-  ];
-
-  for (const url of endpoints) {
-    try {
-      const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
-      if (!r.ok) continue;
-      const d = await r.json();
-      const res = d?.chart?.result?.[0];
-      if (!res) continue;
-      const closes = (res.indicators?.quote?.[0]?.close||[]).filter(c=>c!=null);
-      if (!closes.length) continue;
-      const price = res.meta?.regularMarketPrice || closes[closes.length-1];
-      const prev = closes[0];
-      const chg = prev ? (closes[closes.length-1]-prev)/prev*100 : 0;
-      return {
-        price: Math.round(price*100)/100,
-        week_chg: Math.round(chg*10)/10,
-        currency: res.meta?.currency || 'USD'
-      };
-    } catch(e) { continue; }
-  }
-
-  // Fallback: Yahoo Finance v10 (autre endpoint)
-  try {
-    const url = `https://corsproxy.io/?https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=price`;
-    const r = await fetch(url, { signal: AbortSignal.timeout(6000) });
-    const d = await r.json();
-    const price = d?.quoteSummary?.result?.[0]?.price;
-    if (price) {
-      return {
-        price: Math.round((price.regularMarketPrice?.raw||0)*100)/100,
-        week_chg: Math.round((price.regularMarketChangePercent?.raw||0)*100*10)/10,
-        currency: price.currency || 'USD'
-      };
-    }
-  } catch(e) {}
-
-  return null;
-}
-
-async function fetchEurUsd() {
-  const d = await fetchPrice('EURUSD=X');
-  return d?.price || 1.13;
-}
-
-// ── ISIN → TICKER YAHOO FINANCE ──────────────────────────────────────────────
-// Pour Boursorama : TOUS les prix sont en EUR (même les actions US)
-// Yahoo Finance donne les prix en USD pour les actions US
-// → on récupère le cours Yahoo et on divise par EUR/USD pour obtenir le prix EUR
-const ISIN_TO_TICKER = {
-  // Actions françaises — prix Yahoo en EUR, compatible direct
-  'FR0000052292': {t:'RMS.PA',  usd:false}, // Hermès
-  'FR0000120578': {t:'SAN.PA',  usd:false}, // Sanofi
-  'FR0010220475': {t:'ALO.PA',  usd:false}, // Alstom
-  'FR0010908533': {t:'EDEN.PA', usd:false}, // Edenred
-  'FR0000130395': {t:'RCO.PA',  usd:false}, // Rémy Cointreau
-  'FR0000120073': {t:'AI.PA',   usd:false}, // Air Liquide
-  'FR0000120271': {t:'TTE.PA',  usd:false}, // TotalEnergies
-  'FR0010208488': {t:'ENGI.PA', usd:false}, // Engie
-  'FR0013214145': {t:'SMCP.PA', usd:false}, // SMCP
-  'FR0000124570': {t:'POM.PA',  usd:false}, // OPmobility
-  'FR0000120859': {t:'NK.PA',   usd:false}, // Imerys
-  'FR0011882364': {t:'WATR.PA', usd:false}, // Amundi PEA Eau
-  'FR0010386334': {t:'CLARI.PA',usd:false}, // Clariane
-  'FR0000120172': {t:'CA.PA',   usd:false}, // Carrefour
-  'FR0000120693': {t:'RI.PA',   usd:false}, // Pernod Ricard
-  'FR0000125486': {t:'DG.PA',   usd:false}, // Vinci
-  'FR0014000MR3': {t:'ERF.PA',  usd:false}, // Eurofins
-  'FR0013227113': {t:'SOI.PA',  usd:false}, // Soitec
-  'FR0011950732': {t:'ELIOR.PA',usd:false}, // Elior
-  'FR0014003TT8': {t:'DSY.PA',  usd:false}, // Dassault Systèmes
-  'FR0013412269': {t:'PUST.PA', usd:false}, // Amundi PEA US Tech
-  'FR0000131104': {t:'BNP.PA',  usd:false}, // BNP Paribas
-  'FR0000121014': {t:'MC.PA',   usd:false}, // LVMH
-  'FR0000121667': {t:'EL.PA',   usd:false}, // EssilorLuxottica
-  'FR0000121972': {t:'SU.PA',   usd:false}, // Schneider Electric
-  'FR0000120321': {t:'OR.PA',   usd:false}, // L'Oréal
-  'FR0000039299': {t:'BOL.PA',  usd:false}, // Bolloré
-  'FR0014005HJ9': {t:'OVH.PA',  usd:false}, // OVHcloud
-  'FR0000133308': {t:'ORA.PA',  usd:false}, // Orange
-  'FR0000125338': {t:'CAP.PA',  usd:false}, // Capgemini
-  'FR001400BMH7': {t:'TRACT.PA',usd:false}, // Teract
-  'DE0007236101': {t:'SIE.DE',  usd:false}, // Siemens
-  'NL0010273215': {t:'ASML.AS', usd:false}, // ASML (Amsterdam, EUR)
-  'LU1834986900': {t:'VGHEA.PA',usd:false}, // Amundi Stoxx Healthcare
-  'IE00BG0J4C88': {t:'LOCK.AS', usd:false}, // iShares Digital Security (EUR)
-  // Actions US cotées en EUR sur Boursorama
-  // Yahoo donne le prix en USD → diviser par EUR/USD pour obtenir EUR
-  'LU1778762911': {t:'SPOT',    usd:true},  // Spotify
-  'NL0010273215': {t:'ASML',    usd:true},  // ASML (aussi NYSE)
-  'US11135F1012': {t:'AVGO',    usd:true},  // Broadcom
-  'US65339F1012': {t:'NEE',     usd:true},  // NextEra Energy
-  'US5951121038': {t:'MU',      usd:true},  // Micron
-  'US22788C1053': {t:'CRWD',    usd:true},  // CrowdStrike
-  'US3696043013': {t:'GE',      usd:true},  // GE Aerospace
-  'US79466L3024': {t:'CRM',     usd:true},  // Salesforce
-  'US4385161066': {t:'HON',     usd:true},  // Honeywell
-  'US7223041028': {t:'PDD',     usd:true},  // PDD Holdings
-  'US0090661010': {t:'ABNB',    usd:true},  // Airbnb
-  'US01609W1027': {t:'BABA',    usd:true},  // Alibaba
-  'US46120E6023': {t:'ISRG',    usd:true},  // Intuitive Surgical
-  'US0567521085': {t:'BIDU',    usd:true},  // Baidu
-  'US21873S1087': {t:'CRWV',    usd:true},  // CoreWeave
-  'US02079K1079': {t:'GOOG',    usd:true},  // Alphabet C
-  'US02079K3059': {t:'GOOGL',   usd:true},  // Alphabet A
-  'US62914V1061': {t:'NIO',     usd:true},  // NIO
-  'US83443Q1031': {t:'SOLV',    usd:true},  // Solstice
-  // Exclusions — prix non récupérables via Yahoo
-  'QS0004019632': null, // Blast Army
-  'QS0004059927': null, // Blast Army 2
-  'FR0000053399': null, // CNIM (liquidation)
-  'FR0014017CN7': null, // EssilorLuxott DO26
-  'US02156K1034': null, // Optimum RG
-  'US88034P1093': null, // Tencent ADR EUR (incompatible)
-  'FR0010907956': null, // Carmat
-  'US92766K4031': {t:'SPCE', usd:true},    // Virgin Galactic
-};
-
-// ISINs IB déjà en vrais tickers Yahoo (USD direct, pas de conversion)
-const IB_TICKERS_DIRECT = new Set([
-  'AMD','AMZN','AAPL','BIIB','ENPH','META','MSFT','NVDA','ONDS','PLTR',
-  'PANW','ROK','RTX','SNAP','TSLA','PATH','ZS','IBM','JBL','INTC',
-  'AVAV','GFS','KD','CPWR','DFNM','TVRD','TSM','NFLX','GRID',
-]);
-
-function getYahooTicker(pos) {
-  if (pos.broker === 'linxea') return null;
-  const t = pos.ticker || '';
-  if (!t) return null;
-
-  // IB : tickers directs Yahoo (USD)
-  if (pos.broker === 'interactive_brokers') {
-    if (t === 'IE00BMWXKN31' || t === 'IE000J80JTL1') return null; // ETFs EUR sans ticker simple
-    if (IB_TICKERS_DIRECT.has(t)) return {t, usd:false}; // prix en USD, déjà géré par value_eur IB
-    if (t.length === 12 && /^[A-Z]{2}/.test(t)) return null;
-    return {t, usd:false};
-  }
-
-  // Boursorama : conversion ISIN → ticker
-  if (t.length === 12 && /^[A-Z]{2}/.test(t)) {
-    const mapped = ISIN_TO_TICKER[t];
-    if (mapped === undefined) return null; // ISIN non mappé
-    if (mapped === null) return null;      // exclusion explicite
-    return mapped; // {t, usd} ou null
-  }
-
-  return null;
-}
-
-// ── PRICE REFRESH ─────────────────────────────────────────────────────────────
-async function refreshPrices() {
-  if (!DATA || !DATA.portfolio) return;
-  const btn = document.getElementById('refresh-btn');
-  const prog = document.getElementById('upload-progress');
-  const fill = document.getElementById('progress-fill');
-  const detail = document.getElementById('progress-detail');
-  const label = document.getElementById('progress-label');
-
-  btn.textContent = '↻ Actualisation...';
-  btn.disabled = true;
-
-  const positions = DATA.portfolio.positions.filter(p => getYahooTicker(p) !== null);
-  let done = 0;
-
-  label.textContent = 'Récupération des cours live...';
-  prog.style.display = 'block';
-  fill.style.width = '0%';
-
-  const eurusd = await fetchEurUsd();
-  DATA.portfolio.eurusd = eurusd;
-
-  let total_eur = 0, total_pv = 0;
-
-  for (const pos of positions) {
-    const yhInfo = getYahooTicker(pos);
-    const market = yhInfo ? await fetchPrice(yhInfo.t) : null;
-    if (market) {
-      const priceEur = yhInfo.usd ? market.price / eurusd : market.price;
-      pos.price = Math.round(priceEur * 100) / 100;
-      pos.week_chg = market.week_chg;
-      if (pos.broker !== 'interactive_brokers' && pos.qty) {
-        pos.value_eur = Math.round(priceEur * pos.qty);
-        if (pos.pru && pos.pru > 0) {
-          pos.pv_eur = Math.round((priceEur - pos.pru) * pos.qty);
-          pos.pv_pct = Math.round((priceEur - pos.pru) / pos.pru * 1000) / 10;
-        }
-      }
-    }
-    done++;
-    fill.style.width = (done/positions.length*100)+'%';
-    detail.textContent = `${done}/${positions.length} — ${pos.name}`;
-    await new Promise(r => setTimeout(r, 150));
-  }
-
-  // Totaux
-  for (const pos of DATA.portfolio.positions) {
-    total_eur += pos.value_eur || 0;
-    total_pv += pos.pv_eur || 0;
-  }
-  DATA.portfolio.total_value_eur = Math.round(total_eur);
-  DATA.portfolio.total_pv_eur = Math.round(total_pv);
-  DATA.portfolio.total_pv_pct = Math.round(total_pv/total_eur*1000)/10;
-
-  prog.style.display = 'none';
-  btn.textContent = '↻ Actualiser les cours';
-  btn.disabled = false;
-
-  // Sauvegarder dans sessionStorage
-  sessionStorage.setItem('portfolio_live', JSON.stringify(DATA.portfolio));
-  updateTopbar();
-  renderPtf();
-  renderSamedi();
-  toast(`✓ ${done} cours mis à jour · EUR/USD ${eurusd.toFixed(4)}`);
-}
+function toast(msg) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3500); }
+function showTab(id,btn) { document.querySelectorAll('.section').forEach(s=>s.classList.remove('active')); document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active')); document.getElementById(id).classList.add('active'); btn.classList.add('active'); if(id==='historique')renderHistorique(); }
 
 // ── LOAD DATA ─────────────────────────────────────────────────────────────────
 async function loadData() {
@@ -469,21 +317,19 @@ async function loadData() {
     const r = await fetch('latest_briefing.json?t='+Date.now());
     if (!r.ok) throw new Error();
     DATA = await r.json();
-
-    // Restaurer portfolio live si disponible
+    // Restaurer portfolio depuis sessionStorage si plus récent
     const live = sessionStorage.getItem('portfolio_live');
     if (live) {
-      try { DATA.portfolio = JSON.parse(live); } catch(e) {}
+      try {
+        const lp = JSON.parse(live);
+        if (lp.imported_at > (DATA.generated_at||'')) DATA.portfolio = lp;
+      } catch(e) {}
     }
-
     updateTopbar();
     renderSamedi();
     renderOpps();
     renderMacro();
     renderPtf();
-
-    // Auto-refresh prix Yahoo Finance à chaque chargement
-    autoRefreshPrices();
   } catch(e) {
     document.getElementById('samedi-content').innerHTML =
       `<div style="padding:60px;text-align:center;color:#888">
@@ -493,93 +339,30 @@ async function loadData() {
   }
 }
 
-// Auto-refresh silencieux au chargement de la page
-async function autoRefreshPrices() {
-  if (!DATA || !DATA.portfolio || !DATA.portfolio.positions) return;
-  const positions = DATA.portfolio.positions.filter(p => getYahooTicker(p) !== null);
-  if (!positions.length) return;
-
-  console.log('Auto-refresh cours Yahoo Finance...');
-  const eurusd = await fetchEurUsd();
-  DATA.portfolio.eurusd = eurusd;
-
-  let total_eur = 0, total_pv = 0;
-  let updated = 0;
-
-  for (const pos of positions) {
-    const yhInfo = getYahooTicker(pos);
-    const market = yhInfo ? await fetchPrice(yhInfo.t) : null;
-    if (market) {
-      // Si usd:true = prix Yahoo en USD, Boursorama le cote en EUR → convertir
-      const priceEur = yhInfo.usd ? market.price / eurusd : market.price;
-      pos.price = Math.round(priceEur * 100) / 100;
-      pos.week_chg = market.week_chg;
-      // Pour IB : on utilise value_eur de l'export (déjà converti)
-      if (pos.broker === 'interactive_brokers') {
-        // Ne pas recalculer value_eur pour IB — garder celui de l'export
-        updated++;
-      } else if (pos.qty) {
-        pos.value_eur = Math.round(priceEur * pos.qty);
-        if (pos.pru && pos.pru > 0) {
-          pos.pv_eur = Math.round((priceEur - pos.pru) * pos.qty);
-          pos.pv_pct = Math.round((priceEur - pos.pru) / pos.pru * 1000) / 10;
-        }
-        updated++;
-      }
-    }
-    await new Promise(r => setTimeout(r, 150));
-  }
-
-  // Recalculer totaux (inclure TOUTES les positions, pas seulement celles avec ticker)
-  DATA.portfolio.positions.forEach(p => {
-    total_eur += p.value_eur || 0;
-    total_pv += p.pv_eur || 0;
-  });
-  DATA.portfolio.total_value_eur = Math.round(total_eur);
-  DATA.portfolio.total_pv_eur = Math.round(total_pv);
-  DATA.portfolio.total_pv_pct = total_eur ? Math.round(total_pv/total_eur*1000)/10 : 0;
-
-  // Sauvegarder et re-rendre
-  sessionStorage.setItem('portfolio_live', JSON.stringify(DATA.portfolio));
-  updateTopbar();
-  renderSamedi();
-  renderPtf();
-
-  if (updated > 0) {
-    console.log(`Auto-refresh: ${updated} cours mis à jour`);
-    // Afficher discrètement dans le topbar
-    const meta = document.getElementById('topbar-meta');
-    const orig = meta.innerHTML;
-    meta.innerHTML += '<br><span style="color:#4caf50;font-size:10px">✓ Cours actualisés</span>';
-    setTimeout(() => meta.innerHTML = orig.replace(/<br>.*$/,''), 3000);
-  }
-}
-
 function updateTopbar() {
   if (!DATA) return;
-  const p = DATA.portfolio || {};
-  const genAt = (DATA.generated_at||'').slice(0,16).replace('T',' ');
+  const p = DATA.portfolio||{};
+  const genAt = (DATA.generated_at||p.imported_at||'').slice(0,16).replace('T',' ');
+  const pv = p.total_pv_eur||0;
   document.getElementById('topbar-meta').innerHTML =
-    `Semaine ${DATA.week_number} · ${genAt}<br>${Math.round(p.total_value_eur||0).toLocaleString('fr-FR')}€ · ${(p.positions||[]).length} positions`;
+    `Semaine ${DATA.week_number||'?'} · ${genAt}<br>${Math.round(p.total_value_eur||0).toLocaleString('fr-FR')}€ <span class="${pv>=0?'pos':'neg'}">${pv>=0?'+':''}${Math.round(pv).toLocaleString('fr-FR')}€</span>`;
 }
 
 // ── RENDER SAMEDI ─────────────────────────────────────────────────────────────
 function renderSamedi() {
   if (!DATA) return;
-  const a = DATA.analysis||{}, p = DATA.portfolio||{};
+  const a=DATA.analysis||{}, p=DATA.portfolio||{};
   const tv=p.total_value_eur||0, pv=p.total_pv_eur||0, pvp=p.total_pv_pct||0;
   const orMap={RISK_ON:'bg-green',RISK_OFF:'bg-red',MIXTE:'bg-amber'};
   const rlMap={FAIBLE:'bg-teal',MODERE:'bg-amber',ELEVE:'bg-red',EXTREME:'bg-purple'};
-
   let html=`<div class="g4">
     <div class="kpi"><div class="lbl">Portefeuille total</div><div class="val">${Math.round(tv).toLocaleString('fr-FR')}€</div><div class="sub neu">${(p.brokers||[]).join(' · ')}</div></div>
     <div class="kpi"><div class="lbl">PV / MV globale</div><div class="val ${pv>=0?'pos':'neg'}">${pv>=0?'+':''}${Math.round(pv).toLocaleString('fr-FR')}€</div><div class="sub ${pvp>=0?'pos':'neg'}">${pvp>=0?'+':''}${fN(pvp)}%</div></div>
-    <div class="kpi"><div class="lbl">EUR/USD</div><div class="val">${fN(p.eurusd||1.13,4)}</div><div class="sub neu">Taux live</div></div>
+    <div class="kpi"><div class="lbl">EUR/USD</div><div class="val">${fN(p.eurusd||1.13,4)}</div><div class="sub neu">Taux de référence</div></div>
     <div class="kpi"><div class="lbl">Marché</div><div class="val" style="display:flex;gap:4px;flex-wrap:wrap;font-size:13px;padding-top:4px">${badge(a.orientation_marche||'?',orMap[a.orientation_marche]||'bg-gray')} ${badge(a.niveau_risque||'?',rlMap[a.niveau_risque]||'bg-amber')}</div></div>
   </div>`;
-
   const actions=a.actions_samedi_matin||[];
-  if (actions.length) {
+  if(actions.length){
     html+=`<div class="card"><div class="card-hd">Actions prioritaires ce samedi</div>`;
     actions.forEach((act,i)=>{
       const pc=i===0?'neg':i<=2?'':'pos';
@@ -599,33 +382,20 @@ function renderSamedi() {
     });
     html+=`</div>`;
   }
-
   const watch=a.positions_a_surveiller||[];
-  if (watch.length) {
+  if(watch.length){
     html+=`<div class="card"><div class="card-hd">Positions à surveiller</div>`;
-    watch.forEach(w=>{
-      html+=`<div style="padding:8px 0;border-bottom:0.5px solid rgba(0,0,0,0.06)">
-        <div style="font-size:13px;font-weight:500">${w.nom||''} <span style="color:#888;font-size:11px">${w.ticker||''}</span></div>
-        <div style="font-size:12px;color:#888;margin-top:2px">${w.situation||''}</div>
-        <div style="font-size:12px;color:#854F0B;margin-top:2px">→ ${w.action_si||''}</div>
-      </div>`;
-    });
+    watch.forEach(w=>{html+=`<div style="padding:8px 0;border-bottom:0.5px solid rgba(0,0,0,0.06)"><div style="font-size:13px;font-weight:500">${w.nom||''} <span style="color:#888;font-size:11px">${w.ticker||''}</span></div><div style="font-size:12px;color:#888;margin-top:2px">${w.situation||''}</div><div style="font-size:12px;color:#854F0B;margin-top:2px">→ ${w.action_si||''}</div></div>`;});
     html+=`</div>`;
   }
-
   const drivers=a.macro_drivers||[];
-  if (drivers.length) {
+  if(drivers.length){
     const dc={POSITIF:'bg-green',NEGATIF:'bg-red',NEUTRE:'bg-gray'};
     html+=`<div class="card"><div class="card-hd">Drivers macro</div>`;
-    drivers.forEach(d=>{
-      html+=`<div class="driver-row">${badge(d.impact||'?',dc[d.impact]||'bg-gray')} <div><strong style="font-size:13px">${d.facteur||''}</strong><span style="color:#888;font-size:12px"> — ${d.detail||''}</span></div></div>`;
-    });
+    drivers.forEach(d=>{html+=`<div class="driver-row">${badge(d.impact||'?',dc[d.impact]||'bg-gray')} <div><strong style="font-size:13px">${d.facteur||''}</strong><span style="color:#888;font-size:12px"> — ${d.detail||''}</span></div></div>`;});
     html+=`</div>`;
   }
-
-  if (a.commentaire_weekend) {
-    html+=`<div class="card"><div class="card-hd">Commentaire du desk</div><div class="comment-box">${a.commentaire_weekend}</div></div>`;
-  }
+  if(a.commentaire_weekend) html+=`<div class="card"><div class="card-hd">Commentaire du desk</div><div class="comment-box">${a.commentaire_weekend}</div></div>`;
   document.getElementById('samedi-content').innerHTML=html;
 }
 
@@ -633,35 +403,15 @@ function renderSamedi() {
 function renderOpps() {
   if (!DATA) return;
   const a=DATA.analysis||{}, ct=a.top_screener_ct||[], lt=a.top_screener_lt||[], sec=a.secteurs||{};
-  let html=`<div class="g2">
-    <div><div class="card-hd" style="margin-bottom:8px">Court terme — jours / semaines</div>`;
-  ct.forEach(o=>{
-    html+=`<div class="opp-card">
-      <div><div class="opp-name">${o.nom||''} ${o.theme?badge(o.theme,'bg-blue'):''}</div>
-        <div class="opp-meta">${o.ticker||''} · ${brokerBadge(o.courtier||'DeGiro')} ${o.momentum_score?`· Score ${o.momentum_score}/100`:''}</div>
-        <div class="opp-rat">${o.rationale||''}</div></div>
-      <div class="opp-right"><div class="opp-price">${o.prix||'—'}</div>${o.cible_ct?`<div class="opp-cible">→ ${o.cible_ct}</div>`:''}</div>
-    </div>`;
-  });
-  if (!ct.length) html+=`<div class="card-inner" style="color:#888;font-size:13px">Aucune opportunité CT cette semaine.</div>`;
+  let html=`<div class="g2"><div><div class="card-hd" style="margin-bottom:8px">Court terme — jours / semaines</div>`;
+  ct.forEach(o=>{html+=`<div class="opp-card"><div><div class="opp-name">${o.nom||''} ${o.theme?badge(o.theme,'bg-blue'):''}</div><div class="opp-meta">${o.ticker||''} · ${brokerBadge(o.courtier||'DeGiro')} ${o.momentum_score?`· Score ${o.momentum_score}/100`:''}</div><div class="opp-rat">${o.rationale||''}</div></div><div class="opp-right"><div class="opp-price">${o.prix||'—'}</div>${o.cible_ct?`<div class="opp-cible">→ ${o.cible_ct}</div>`:''}</div></div>`;});
+  if(!ct.length) html+=`<div class="card-inner" style="color:#888;font-size:13px">Aucune opportunité CT cette semaine.</div>`;
   html+=`</div><div><div class="card-hd" style="margin-bottom:8px">Long terme — conviction retraite 5-7 ans</div>`;
-  lt.forEach(o=>{
-    html+=`<div class="opp-card" style="border-left:3px solid #065040">
-      <div><div class="opp-name">${o.nom||''} ${o.theme?badge(o.theme,'bg-teal'):''}</div>
-        <div class="opp-meta">${o.ticker||''} · ${brokerBadge(o.courtier||'DeGiro')}${o.vehicule_linxea?` · ${badge('Linxea: '+o.vehicule_linxea,'bg-amber')}`:''}</div>
-        <div class="opp-rat"><em>"${o.these_retraite||''}"</em></div></div>
-      <div class="opp-right">${o.montant_suggere?`<div style="font-weight:500;color:#065040">${Math.round(o.montant_suggere).toLocaleString('fr-FR')}€</div><div style="font-size:11px;color:#888">suggérés</div>`:''}</div>
-    </div>`;
-  });
-  if (!lt.length) html+=`<div class="card-inner" style="color:#888;font-size:13px">Aucune conviction LT ce samedi.</div>`;
+  lt.forEach(o=>{html+=`<div class="opp-card" style="border-left:3px solid #065040"><div><div class="opp-name">${o.nom||''} ${o.theme?badge(o.theme,'bg-teal'):''}</div><div class="opp-meta">${o.ticker||''} · ${brokerBadge(o.courtier||'DeGiro')}${o.vehicule_linxea?` · ${badge('Linxea: '+o.vehicule_linxea,'bg-amber')}`:''}</div><div class="opp-rat"><em>"${o.these_retraite||''}"</em></div></div><div class="opp-right">${o.montant_suggere?`<div style="font-weight:500;color:#065040">${Math.round(o.montant_suggere).toLocaleString('fr-FR')}€</div><div style="font-size:11px;color:#888">suggérés</div>`:''}</div></div>`;});
+  if(!lt.length) html+=`<div class="card-inner" style="color:#888;font-size:13px">Aucune conviction LT.</div>`;
   html+=`</div></div>`;
-
-  if ((sec.surponderer||[]).length||(sec.alleger||[]).length) {
-    html+=`<div class="card"><div class="card-hd">Allocation sectorielle</div>
-      <div style="display:flex;gap:16px;flex-wrap:wrap">
-        <div style="flex:1;min-width:180px"><div style="font-size:11px;color:#888;margin-bottom:5px">SURPONDÉRER</div><div style="display:flex;flex-wrap:wrap;gap:4px">${(sec.surponderer||[]).map(s=>badge(s,'bg-green')).join('')}</div></div>
-        <div style="flex:1;min-width:180px"><div style="font-size:11px;color:#888;margin-bottom:5px">ALLÉGER</div><div style="display:flex;flex-wrap:wrap;gap:4px">${(sec.alleger||[]).map(s=>badge(s,'bg-red')).join('')}</div></div>
-      </div></div>`;
+  if((sec.surponderer||[]).length||(sec.alleger||[]).length){
+    html+=`<div class="card"><div class="card-hd">Allocation sectorielle</div><div style="display:flex;gap:16px;flex-wrap:wrap"><div style="flex:1;min-width:180px"><div style="font-size:11px;color:#888;margin-bottom:5px">SURPONDÉRER</div><div style="display:flex;flex-wrap:wrap;gap:4px">${(sec.surponderer||[]).map(s=>badge(s,'bg-green')).join('')}</div></div><div style="flex:1;min-width:180px"><div style="font-size:11px;color:#888;margin-bottom:5px">ALLÉGER</div><div style="display:flex;flex-wrap:wrap;gap:4px">${(sec.alleger||[]).map(s=>badge(s,'bg-red')).join('')}</div></div></div></div>`;
   }
   document.getElementById('opps-content').innerHTML=html;
 }
@@ -670,24 +420,13 @@ function renderOpps() {
 function renderPtf() {
   if (!DATA) return;
   const p=DATA.portfolio||{};
-  // Afficher TOUTES les positions (pas de filtre sur ticker)
   let positions=[...(p.positions||[])].filter(x=>brokerFilter==='all'||x.broker===brokerFilter);
   document.getElementById('ptf-title').textContent=`${positions.length} positions · ${Math.round(p.total_value_eur||0).toLocaleString('fr-FR')}€`;
-
-  positions.sort((a,b)=>{
-    let va=a[sortCol],vb=b[sortCol];
-    if(va==null)va=sortDir>0?1e12:-1e12;
-    if(vb==null)vb=sortDir>0?1e12:-1e12;
-    return typeof va==='string'?sortDir*va.localeCompare(vb):sortDir*(va-vb);
-  });
-
-  ['broker','name','qty','pru','price','value_eur','pv_eur','pv_pct','week_chg'].forEach(c=>{
-    const el=document.getElementById('s-'+c);
-    if(el)el.textContent=c===sortCol?(sortDir>0?'↑':'↓'):'';
-  });
-
+  positions.sort((a,b)=>{ let va=a[sortCol],vb=b[sortCol]; if(va==null)va=sortDir>0?1e12:-1e12; if(vb==null)vb=sortDir>0?1e12:-1e12; return typeof va==='string'?sortDir*va.localeCompare(vb):sortDir*(va-vb); });
+  ['broker','name','qty','pru','price','value_eur','pv_eur','pv_pct','week_chg'].forEach(c=>{ const el=document.getElementById('s-'+c); if(el)el.textContent=c===sortCol?(sortDir>0?'↑':'↓'):''; });
   document.getElementById('ptf-body').innerHTML=positions.length?positions.map(pos=>{
     const wk=pos.week_chg;
+    const wkHtml = wk!=null&&wk!==0 ? fP(wk) : '<span style="color:#ccc">—</span>';
     return `<tr>
       <td>${brokerBadge(pos.broker)}</td>
       <td style="font-size:12px;font-weight:500;max-width:160px">${pos.name||''}</td>
@@ -697,7 +436,7 @@ function renderPtf() {
       <td style="text-align:right">${pos.value_eur?Math.round(pos.value_eur).toLocaleString('fr-FR')+'€':'—'}</td>
       <td style="text-align:right">${fE(pos.pv_eur)}</td>
       <td style="text-align:right">${fP(pos.pv_pct)}</td>
-      <td style="text-align:right">${wk!=null&&wk!==0?fP(wk):'—'}</td>
+      <td style="text-align:right">${wkHtml}</td>
     </tr>`;
   }).join(''):`<tr><td colspan="9" style="text-align:center;padding:20px;color:#888">Aucune position.</td></tr>`;
 }
@@ -705,7 +444,7 @@ function renderPtf() {
 function sortPtf(col){if(sortCol===col)sortDir*=-1;else{sortCol=col;sortDir=-1;}renderPtf();}
 function filterBroker(broker,btn){brokerFilter=broker;document.querySelectorAll('#broker-filters .flt').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderPtf();}
 
-// ── RENDER MACRO ─────────────────────────────────────────────────────────────
+// ── RENDER MACRO ──────────────────────────────────────────────────────────────
 function renderMacro() {
   if (!DATA) return;
   const macro=DATA.macro||{};
@@ -716,7 +455,7 @@ function renderMacro() {
     html+=`<div class="macro-item"><div class="macro-lbl">${name}</div><div class="macro-val">${fN(vals.price,isEur?4:2)}</div><div class="macro-chg ${chg>=0?'pos':'neg'}">${chg>=0?'+':''}${fN(chg)}% sem.</div></div>`;
   }
   html+=`</div>`;
-  const a=DATA.analysis||{},drivers=a.macro_drivers||[];
+  const drivers=(DATA.analysis||{}).macro_drivers||[];
   if(drivers.length){
     const dc={POSITIF:'bg-green',NEGATIF:'bg-red',NEUTRE:'bg-gray'};
     html+=`<div class="card"><div class="card-hd">Drivers macro</div>`;
@@ -726,39 +465,105 @@ function renderMacro() {
   document.getElementById('macro-content').innerHTML=html;
 }
 
+// ── RENDER HISTORIQUE ─────────────────────────────────────────────────────────
+function renderHistorique() {
+  const h = loadHistory();
+  const dates = Object.keys(h).sort().reverse();
+  const sel1 = document.getElementById('hist-date1');
+  const sel2 = document.getElementById('hist-date2');
+  const cur1 = sel1.value, cur2 = sel2.value;
+  sel1.innerHTML = dates.map(d=>`<option value="${d}" ${d===cur1?'selected':''}>${d}</option>`).join('');
+  sel2.innerHTML = dates.map(d=>`<option value="${d}" ${d===cur2?'selected':''}>${d}</option>`).join('');
+  if (!dates.length) {
+    document.getElementById('hist-content').innerHTML = `<div class="card-inner" style="color:#888;text-align:center;padding:30px">Aucun historique — importez vos fichiers pour commencer à construire l'historique.</div>`;
+    document.getElementById('hist-summary').innerHTML = '';
+    return;
+  }
+  // Sélectionner automatiquement
+  const d1 = sel1.value || dates[Math.min(1,dates.length-1)];
+  const d2 = sel2.value || dates[0];
+  sel1.value = d1; sel2.value = d2;
+  const snap1 = h[d1]?.snap || {};
+  const snap2 = h[d2]?.snap || {};
+  // Résumé global
+  const tv1=h[d1]?.total_eur||0, tv2=h[d2]?.total_eur||0;
+  const pv1=h[d1]?.total_pv||0, pv2=h[d2]?.total_pv||0;
+  const tvDiff=tv2-tv1, pvDiff=pv2-pv1;
+  document.getElementById('hist-summary').innerHTML=`
+    <div class="g4" style="margin:0">
+      <div class="kpi"><div class="lbl">Valeur ${d1}</div><div class="val">${Math.round(tv1).toLocaleString('fr-FR')}€</div></div>
+      <div class="kpi"><div class="lbl">Valeur ${d2}</div><div class="val">${Math.round(tv2).toLocaleString('fr-FR')}€</div></div>
+      <div class="kpi"><div class="lbl">Évolution valeur</div><div class="val ${tvDiff>=0?'pos':'neg'}">${tvDiff>=0?'+':''}${Math.round(tvDiff).toLocaleString('fr-FR')}€</div><div class="sub ${tvDiff>=0?'pos':'neg'}">${tv1?((tvDiff/tv1*100).toFixed(1)+'%'):''}</div></div>
+      <div class="kpi"><div class="lbl">Évolution PV/MV</div><div class="val ${pvDiff>=0?'pos':'neg'}">${pvDiff>=0?'+':''}${Math.round(pvDiff).toLocaleString('fr-FR')}€</div></div>
+    </div>`;
+  // Tableau de comparaison
+  const allKeys = new Set([...Object.keys(snap1),...Object.keys(snap2)]);
+  const rows = [];
+  for (const key of allKeys) {
+    const s1=snap1[key], s2=snap2[key];
+    if (!s1&&!s2) continue;
+    const p1=s1?.price||0, p2=s2?.price||0;
+    const v1=s1?.value_eur||0, v2=s2?.value_eur||0;
+    const chg = p1>0 ? (p2-p1)/p1*100 : null;
+    const vchg = v1>0 ? (v2-v1)/v1*100 : null;
+    const name = key.split('|')[1]||key;
+    rows.push({name, p1, p2, v1, v2, chg, vchg});
+  }
+  rows.sort((a,b)=>Math.abs(b.vchg||0)-Math.abs(a.vchg||0));
+  let html=`<div class="card" style="padding:0;overflow:hidden"><div class="tscroll"><table>
+    <thead><tr>
+      <th>Valeur</th>
+      <th style="text-align:right">Cours ${d1}</th>
+      <th style="text-align:right">Cours ${d2}</th>
+      <th style="text-align:right">Évol. cours</th>
+      <th style="text-align:right">Valeur ${d1}</th>
+      <th style="text-align:right">Valeur ${d2}</th>
+      <th style="text-align:right">Évol. valeur</th>
+    </tr></thead><tbody>`;
+  rows.forEach(r=>{
+    const chgHtml=r.chg!=null?fP(r.chg):'<span style="color:#ccc">—</span>';
+    const vchgHtml=r.vchg!=null?fP(r.vchg):'<span style="color:#ccc">—</span>';
+    html+=`<tr>
+      <td style="font-size:12px;font-weight:500">${r.name}</td>
+      <td style="text-align:right">${r.p1?fN(r.p1,2):'—'}</td>
+      <td style="text-align:right;font-weight:500">${r.p2?fN(r.p2,2):'—'}</td>
+      <td style="text-align:right">${chgHtml}</td>
+      <td style="text-align:right;color:#888">${r.v1?Math.round(r.v1).toLocaleString('fr-FR')+'€':'—'}</td>
+      <td style="text-align:right;font-weight:500">${r.v2?Math.round(r.v2).toLocaleString('fr-FR')+'€':'—'}</td>
+      <td style="text-align:right">${vchgHtml}</td>
+    </tr>`;
+  });
+  html+=`</tbody></table></div></div>`;
+  document.getElementById('hist-content').innerHTML=html;
+}
+
 // ── FILE PARSING ──────────────────────────────────────────────────────────────
 function parseNum(s) {
   if(s==null)return null;
   s=String(s).trim().replace(/"/g,'').replace(/\xa0/g,'').replace(/ /g,'');
   if(s.includes(',')&&!s.includes('.'))s=s.replace(',','.');
   else if(s.includes(',')&&s.includes('.'))s=s.replace('.','').replace(',','.');
-  const n=parseFloat(s);
-  return isNaN(n)?null:n;
+  const n=parseFloat(s); return isNaN(n)?null:n;
 }
 
 function parseBoursorama(text) {
   const lines=text.split('\n');
   const headers=lines[0].split(';').map(h=>h.trim().replace(/"/g,''));
-  const positions=[];
-  const seen=new Set();
+  const positions=[], seen=new Set();
   for(let i=1;i<lines.length;i++){
     const cols=lines[i].split(';');
     if(cols.length<3)continue;
     const row={};
-    headers.forEach((h,j)=>row[h]=cols[j]?.trim().replace(/"/g,'')||'');
-    const name=row['name']||row['Valeur']||'';
-    if(!name||seen.has(name))continue;
-    seen.add(name);
+    headers.forEach((h,j)=>row[h]=(cols[j]||'').trim().replace(/"/g,''));
+    const name=row['name']||''; if(!name||seen.has(name))continue; seen.add(name);
     const isin=row['isin']||'';
-    const qty=parseNum(row['quantity']||row['Quantité']);
-    const pru=parseNum(row['buyingPrice']||row['PRU']);
-    const price=parseNum(row['lastPrice']||row['Cours']);
-    const value=parseNum(row['amount']||row['Valorisation']);
-    const vari=parseNum(row['variation']||row['Variation']);
-    const cur=isin.startsWith('US')?'USD':'EUR';
+    const qty=parseNum(row['quantity']), pru=parseNum(row['buyingPrice']);
+    const price=parseNum(row['lastPrice']), value=parseNum(row['amount']);
+    const vari=parseNum(row['variation']);
+    // TOUT est en EUR chez Boursorama
     const pv_eur=value&&pru&&pru>0&&qty?Math.round(value-pru*qty):null;
-    positions.push({broker:'boursorama',name:name.slice(0,35),ticker:isin,
-      qty,pru:pru&&pru>0?pru:null,price,currency:cur,
+    positions.push({broker:'boursorama',name:name.slice(0,35),isin,ticker:isin,
+      qty,pru:pru&&pru>0?pru:null,price,currency:'EUR',
       value_eur:value,pv_pct:vari,pv_eur,week_chg:0});
   }
   return positions;
@@ -766,22 +571,23 @@ function parseBoursorama(text) {
 
 function parseIB(text) {
   const lines=text.split('\n');
-  const headers=lines[0].split(',').map(h=>h.trim().replace(/"/g,''));
+  const sep=lines[0].includes(';')?';':',';
+  const headers=lines[0].split(sep).map(h=>h.trim().replace(/"/g,''));
   const positions=[];
   for(let i=1;i<lines.length;i++){
-    const cols=lines[i].split(',');
+    const cols=lines[i].split(sep);
     if(cols.length<3)continue;
     const row={};
     headers.forEach((h,j)=>row[h]=(cols[j]||'').trim().replace(/"/g,''));
     const name=row['Produit']||row['Description']||'';
     if(!name||name.includes('CASH'))continue;
-    const ticker=row['Ticker/ISIN']||row['Symbol']||'';
+    const isin=row['Ticker/ISIN']||row['Symbol']||'';
     const qty=parseNum(row['Quantité']||row['Quantity']);
-    const price=parseNum(row['Clôture']||row['Close']);
+    const price=parseNum(row['Clôture']||row['Close Price']||row['Close']);
     const value=parseNum(row['Montant en EUR']||row['Value in EUR']);
     const cur=(row['Devise']||row['Currency']||'USD').trim();
-    positions.push({broker:'interactive_brokers',name:name.slice(0,35),
-      ticker,qty,pru:null,price,currency:cur,value_eur:value,
+    positions.push({broker:'interactive_brokers',name:name.slice(0,35),isin,
+      ticker:isin,qty,pru:null,price,currency:cur,value_eur:value,
       pv_eur:null,pv_pct:null,week_chg:0});
   }
   return positions;
@@ -802,16 +608,23 @@ function parseLinxea(workbook) {
     const pv=parseNum(row['Plus ou Moins Value']||row['PV/MV']);
     const pru=parseNum(row['Prix de Revient Moyen']||row['PRU']);
     const qty=parseNum(row['Nbre de parts']||row['Quantité']);
-    const ytdStr=String(row['Perf.% Deb. année']||'').replace('%','').replace(',','.');
-    const ytd=parseFloat(ytdStr)||null;
     if(!value)continue;
-    positions.push({broker:'linxea',name:name.slice(0,35),ticker:null,
-      qty,pru,price:null,currency:'EUR',value_eur:value,
-      pv_eur:pv,pv_pct:pru&&pru>0&&value?Math.round((value-pru*(qty||1))/(pru*(qty||1))*1000)/10:ytd,
-      week_chg:0});
+    const pvPct=pru&&qty&&pru>0?Math.round((value-pru*qty)/(pru*qty)*1000)/10:null;
+    positions.push({broker:'linxea',name:name.slice(0,35),isin:'',
+      ticker:null,qty,pru,price:pru,currency:'EUR',value_eur:value,
+      pv_eur:pv,pv_pct:pvPct,week_chg:0});
   }
   return positions;
 }
+
+// Linxea statique si fichier vide
+const LINXEA_STATIC = [
+  {broker:'linxea',name:'Amundi MSCI World IT',isin:'LU0533033667',ticker:null,qty:null,pru:null,price:null,currency:'EUR',value_eur:13069.81,pv_eur:1583.60,pv_pct:13.8,week_chg:3.9},
+  {broker:'linxea',name:'Ofi Precious Metals',isin:'FR0011170182',ticker:null,qty:null,pru:null,price:null,currency:'EUR',value_eur:12148.80,pv_eur:662.55,pv_pct:5.8,week_chg:6.8},
+  {broker:'linxea',name:'R-co Convertibles EU',isin:'FR0007009139',ticker:null,qty:null,pru:null,price:null,currency:'EUR',value_eur:11966.18,pv_eur:479.88,pv_pct:4.2,week_chg:0.1},
+  {broker:'linxea',name:'FCPR Ardian Multi strat.',isin:'FR0013486446',ticker:null,qty:null,pru:null,price:null,currency:'EUR',value_eur:10102.99,pv_eur:115.49,pv_pct:1.2,week_chg:0},
+  {broker:'linxea',name:'Amundi Nasdaq-100 Swap',isin:'LU1829221024',ticker:null,qty:null,pru:null,price:null,currency:'EUR',value_eur:1718.61,pv_eur:219.84,pv_pct:14.7,week_chg:3.1},
+];
 
 async function handleFiles(files) {
   const status=document.getElementById('upload-status');
@@ -819,109 +632,107 @@ async function handleFiles(files) {
   const fill=document.getElementById('progress-fill');
   const detail=document.getElementById('progress-detail');
   const label=document.getElementById('progress-label');
+  status.innerHTML='';
+  prog.style.display='block';
+  label.textContent='Lecture des fichiers...';
+  fill.style.width='5%';
 
-  status.innerHTML=`<div style="padding:10px;color:#888"><span class="spinner"></span>Lecture des fichiers...</div>`;
-  prog.style.display='none';
+  let allPositions=[], hasLinxea=false;
+  const log=msg=>{status.innerHTML+=`<div style="font-size:12px;color:#3B6D11;padding:2px 0">✓ ${msg}</div>`;};
 
-  let allPositions=[];
-  const linxea_static=[
-    {broker:'linxea',name:'Amundi MSCI World IT',ticker:null,qty:null,pru:null,price:null,currency:'EUR',value_eur:13069.81,pv_eur:1583.60,pv_pct:13.8,week_chg:3.9},
-    {broker:'linxea',name:'Ofi Precious Metals',ticker:null,qty:null,pru:null,price:null,currency:'EUR',value_eur:12148.80,pv_eur:662.55,pv_pct:5.8,week_chg:6.8},
-    {broker:'linxea',name:'R-co Convertibles EU',ticker:null,qty:null,pru:null,price:null,currency:'EUR',value_eur:11966.18,pv_eur:479.88,pv_pct:4.2,week_chg:0.1},
-    {broker:'linxea',name:'FCPR Ardian Multi strat.',ticker:null,qty:null,pru:null,price:null,currency:'EUR',value_eur:10102.99,pv_eur:115.49,pv_pct:1.2,week_chg:0},
-    {broker:'linxea',name:'Amundi Nasdaq-100 Swap',ticker:null,qty:null,pru:null,price:null,currency:'EUR',value_eur:1718.61,pv_eur:219.84,pv_pct:14.7,week_chg:3.1},
-  ];
-
-  let hasLinxea=false;
   for(const file of files){
     const ext=file.name.toLowerCase().split('.').pop();
-    const text=await file.text().catch(()=>null);
-    if(ext==='csv'&&text){
-      const fn=file.name.toLowerCase();
+    const fn=file.name.toLowerCase();
+    if(ext==='csv'){
+      const text=await file.text();
       if(fn.includes('export-positions')||fn.includes('boursorama')){
         const pos=parseBoursorama(text);
         allPositions=allPositions.concat(pos);
-        status.innerHTML+=`<div style="font-size:12px;color:#3B6D11;padding:3px 0">✓ Boursorama: ${pos.length} positions</div>`;
+        log(`Boursorama: ${pos.length} positions lues`);
       } else {
         const pos=parseIB(text);
-        if(pos.length){allPositions=allPositions.concat(pos);status.innerHTML+=`<div style="font-size:12px;color:#3B6D11;padding:3px 0">✓ IB: ${pos.length} positions</div>`;}
+        if(pos.length){allPositions=allPositions.concat(pos);log(`IB: ${pos.length} positions lues`);}
       }
-    } else if((ext==='xlsx'||ext==='xls')&&typeof XLSX!=='undefined'){
+    } else if(ext==='xlsx'||ext==='xls'){
       const ab=await file.arrayBuffer();
       const wb=XLSX.read(ab,{type:'array'});
-      if(file.name.toLowerCase().includes('linxea')){
+      if(fn.includes('linxea')){
         const pos=parseLinxea(wb);
-        if(pos.length){allPositions=allPositions.concat(pos);hasLinxea=true;status.innerHTML+=`<div style="font-size:12px;color:#3B6D11;padding:3px 0">✓ Linxea: ${pos.length} fonds</div>`;}
+        if(pos.length){allPositions=allPositions.concat(pos);hasLinxea=true;log(`Linxea: ${pos.length} fonds lus`);}
       } else {
         const ws=wb.Sheets[wb.SheetNames[0]];
-        const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
-        const text2=rows.map(r=>r.join(',')).join('\n');
-        const pos=parseIB(text2);
-        if(pos.length){allPositions=allPositions.concat(pos);status.innerHTML+=`<div style="font-size:12px;color:#3B6D11;padding:3px 0">✓ IB (xlsx): ${pos.length} positions</div>`;}
+        const text=XLSX.utils.sheet_to_csv(ws);
+        const pos=parseIB(text);
+        if(pos.length){allPositions=allPositions.concat(pos);log(`IB (xlsx): ${pos.length} positions lues`);}
       }
     }
   }
 
-  if(!hasLinxea) allPositions=allPositions.concat(linxea_static);
-  if(!allPositions.length){status.innerHTML+=`<div style="color:#A32D2D;font-size:13px;padding:6px 0">Aucune position trouvée. Vérifiez les formats de fichier.</div>`;return;}
+  if(!hasLinxea) allPositions=allPositions.concat(LINXEA_STATIC);
 
   // Dédupliquer
   const seen=new Set();
-  allPositions=allPositions.filter(p=>{const k=`${p.broker}-${p.name}`;if(seen.has(k))return false;seen.add(k);return true;});
+  allPositions=allPositions.filter(p=>{const k=`${p.broker}|${p.name}`;if(seen.has(k))return false;seen.add(k);return true;});
 
-  status.innerHTML+=`<div style="font-size:12px;color:#888;padding:4px 0;border-top:0.5px solid rgba(0,0,0,0.06);margin-top:6px">${allPositions.length} positions au total — récupération des cours...</div>`;
+  fill.style.width='50%';
+  label.textContent='Calcul des variations hebdomadaires...';
 
-  // Récupérer EUR/USD
-  prog.style.display='block';
-  label.textContent='Récupération EUR/USD...';
-  fill.style.width='0%';
-  const eurusd=await fetchEurUsd();
+  // Calculer les variations hebdomadaires depuis l'historique
+  allPositions=getWeekChg(allPositions);
 
-  // Récupérer les cours pour chaque position avec ticker
-  const withTicker=allPositions.filter(p=>getYahooTicker(p)!==null);
-  let done=0,total_eur=0,total_pv=0;
-
-  label.textContent='Récupération des cours live...';
-  for(const pos of withTicker){
-    const yhInfo=getYahooTicker(pos);
-    const market=yhInfo?await fetchPrice(yhInfo.t):null;
-    if(market){
-      pos.price=market.price;
-      pos.week_chg=market.week_chg;
-      const fx=pos.currency==='USD'?1/eurusd:1;
-      if(pos.qty){
-        pos.value_eur=Math.round(market.price*pos.qty*fx);
-        if(pos.pru&&pos.pru>0){
-          pos.pv_eur=Math.round((market.price-pos.pru)*pos.qty*fx);
-          pos.pv_pct=Math.round((market.price-pos.pru)/pos.pru*1000)/10;
-        }
-      }
-    }
-    done++;
-    fill.style.width=(done/withTicker.length*100)+'%';
-    detail.textContent=`${done}/${withTicker.length} — ${pos.name}`;
-    await new Promise(r=>setTimeout(r,200));
-  }
+  fill.style.width='80%';
+  label.textContent='Sauvegarde de l\'historique...';
 
   // Totaux
-  allPositions.forEach(p=>{total_eur+=p.value_eur||0;total_pv+=p.pv_eur||0;});
+  const total_eur=allPositions.reduce((s,p)=>s+(p.value_eur||0),0);
+  const total_pv=allPositions.reduce((s,p)=>s+(p.pv_eur||0),0);
   const sorted=allPositions.sort((a,b)=>(b.value_eur||0)-(a.value_eur||0));
 
+  // Sauvegarder dans l'historique AVANT d'écraser
+  const today=new Date().toISOString().slice(0,10);
+  saveSnapshot(today, sorted);
+
+  fill.style.width='90%';
+
   // Mettre à jour DATA
-  if(!DATA){DATA={generated_at:new Date().toISOString(),date:new Date().toISOString().slice(0,10),week_number:getWeek(),macro:{},screened_count:sorted.length,backtest:{},recent_calls:[],analysis:{semaine_en_bref:'Portefeuille importé manuellement.',orientation_marche:'MIXTE',niveau_risque:'MODERE',commentaire_weekend:'Portefeuille importé. Briefing automatique disponible chaque samedi matin.',actions_samedi_matin:[],top_screener_ct:[],top_screener_lt:[],positions_a_surveiller:[],macro_drivers:[],secteurs:{surponderer:[],alleger:[]}}};}
+  const portfolio={
+    positions:sorted, total_value_eur:Math.round(total_eur),
+    total_pv_eur:Math.round(total_pv),
+    total_pv_pct:total_eur?Math.round(total_pv/total_eur*1000)/10:0,
+    eurusd:1.1363,
+    brokers:[...new Set(sorted.map(p=>p.broker))],
+    imported_at:new Date().toISOString()
+  };
 
-  DATA.portfolio={positions:sorted,total_value_eur:Math.round(total_eur),total_pv_eur:Math.round(total_pv),total_pv_pct:Math.round(total_pv/total_eur*1000)/10,eurusd,brokers:[...new Set(sorted.map(p=>p.broker))]};
+  if(!DATA){
+    DATA={generated_at:new Date().toISOString(),date:today,week_number:getWeekNum(),
+      macro:{},screened_count:sorted.length,backtest:{},recent_calls:[],
+      analysis:{semaine_en_bref:'Portefeuille importé.',orientation_marche:'MIXTE',
+        niveau_risque:'MODERE',commentaire_weekend:'Portefeuille importé. Briefing automatique chaque samedi matin.',
+        actions_samedi_matin:[],top_screener_ct:[],top_screener_lt:[],
+        positions_a_surveiller:[],macro_drivers:[],secteurs:{surponderer:[],alleger:[]}}};
+  }
+  DATA.portfolio=portfolio;
+  DATA.week_number=DATA.week_number||getWeekNum();
 
-  sessionStorage.setItem('portfolio_live',JSON.stringify(DATA.portfolio));
+  sessionStorage.setItem('portfolio_live',JSON.stringify(portfolio));
+
+  fill.style.width='100%';
   prog.style.display='none';
-  status.innerHTML+=`<div style="font-size:12px;color:#3B6D11;padding:4px 0;font-weight:500">✓ ${sorted.length} positions · ${Math.round(total_eur).toLocaleString('fr-FR')}€ · EUR/USD ${eurusd.toFixed(4)}</div>`;
 
-  updateTopbar();renderSamedi();renderOpps();renderMacro();renderPtf();
-  toast(`✓ ${sorted.length} positions importées avec cours live`);
+  // Compter les positions avec variation calculée
+  const withChg=sorted.filter(p=>p.week_chg!==0&&p.week_chg!=null).length;
+  status.innerHTML+=`<div style="font-size:13px;color:#3B6D11;padding:6px 0;font-weight:500;border-top:0.5px solid rgba(0,0,0,0.06);margin-top:6px">
+    ✓ ${sorted.length} positions importées · ${Math.round(total_eur).toLocaleString('fr-FR')}€ · PV/MV ${total_pv>=0?'+':''}${Math.round(total_pv).toLocaleString('fr-FR')}€<br>
+    <span style="font-weight:400;font-size:12px;color:#888">${withChg} variations hebdomadaires calculées${withChg===0?' (premier import — les variations apparaîtront dès la semaine prochaine)':''}</span>
+  </div>`;
+
+  updateTopbar(); renderSamedi(); renderOpps(); renderMacro(); renderPtf();
+  toast(`✓ ${sorted.length} positions importées`);
   document.querySelector('.nav-btn').click();
 }
 
-function getWeek(){const d=new Date();const j=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));j.setUTCDate(j.getUTCDate()+4-(j.getUTCDay()||7));const y=new Date(Date.UTC(j.getUTCFullYear(),0,1));return Math.ceil((((j-y)/86400000)+1)/7);}
+function getWeekNum(){const d=new Date(),j=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));j.setUTCDate(j.getUTCDate()+4-(j.getUTCDay()||7));const y=new Date(Date.UTC(j.getUTCFullYear(),0,1));return Math.ceil((((j-y)/86400000)+1)/7);}
 
 // ── DRAG & DROP ───────────────────────────────────────────────────────────────
 const dz=document.getElementById('dropzone');
@@ -930,9 +741,8 @@ dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
 dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag');handleFiles(e.dataTransfer.files)});
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
-if(sessionStorage.getItem('pt_ok')==='1') loadData();
-// Rafraîchissement automatique des cours toutes les 30 minutes
-setInterval(()=>{if(sessionStorage.getItem('pt_ok')==='1'&&DATA)autoRefreshPrices();},30*60*1000);
+async function init() { await loadData(); }
+if(sessionStorage.getItem('pt_ok')==='1') init();
 </script>
 </body>
 </html>
