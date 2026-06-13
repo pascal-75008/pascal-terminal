@@ -466,6 +466,8 @@ function renderMacro() {
 }
 
 // ── RENDER HISTORIQUE ─────────────────────────────────────────────────────────
+let histSortCol = 'vchg', histSortDir = -1;
+
 function renderHistorique() {
   const h = loadHistory();
   const dates = Object.keys(h).sort().reverse();
@@ -479,13 +481,11 @@ function renderHistorique() {
     document.getElementById('hist-summary').innerHTML = '';
     return;
   }
-  // Sélectionner automatiquement
   const d1 = sel1.value || dates[Math.min(1,dates.length-1)];
   const d2 = sel2.value || dates[0];
   sel1.value = d1; sel2.value = d2;
   const snap1 = h[d1]?.snap || {};
   const snap2 = h[d2]?.snap || {};
-  // Résumé global
   const tv1=h[d1]?.total_eur||0, tv2=h[d2]?.total_eur||0;
   const pv1=h[d1]?.total_pv||0, pv2=h[d2]?.total_pv||0;
   const tvDiff=tv2-tv1, pvDiff=pv2-pv1;
@@ -496,7 +496,7 @@ function renderHistorique() {
       <div class="kpi"><div class="lbl">Évolution valeur</div><div class="val ${tvDiff>=0?'pos':'neg'}">${tvDiff>=0?'+':''}${Math.round(tvDiff).toLocaleString('fr-FR')}€</div><div class="sub ${tvDiff>=0?'pos':'neg'}">${tv1?((tvDiff/tv1*100).toFixed(1)+'%'):''}</div></div>
       <div class="kpi"><div class="lbl">Évolution PV/MV</div><div class="val ${pvDiff>=0?'pos':'neg'}">${pvDiff>=0?'+':''}${Math.round(pvDiff).toLocaleString('fr-FR')}€</div></div>
     </div>`;
-  // Tableau de comparaison
+  // Construire les lignes
   const allKeys = new Set([...Object.keys(snap1),...Object.keys(snap2)]);
   const rows = [];
   for (const key of allKeys) {
@@ -506,35 +506,54 @@ function renderHistorique() {
     const v1=s1?.value_eur||0, v2=s2?.value_eur||0;
     const chg = p1>0 ? (p2-p1)/p1*100 : null;
     const vchg = v1>0 ? (v2-v1)/v1*100 : null;
+    const vdiff = v2-v1;
     const name = key.split('|')[1]||key;
-    rows.push({name, p1, p2, v1, v2, chg, vchg});
+    rows.push({name, p1, p2, v1, v2, chg, vchg, vdiff});
   }
-  rows.sort((a,b)=>Math.abs(b.vchg||0)-Math.abs(a.vchg||0));
+  // Tri
+  rows.sort((a,b)=>{
+    let va=a[histSortCol], vb=b[histSortCol];
+    if(va==null)va=histSortDir>0?1e12:-1e12;
+    if(vb==null)vb=histSortDir>0?1e12:-1e12;
+    return typeof va==='string'?histSortDir*va.localeCompare(vb):histSortDir*(va-vb);
+  });
+  // Flèche de tri
+  const arr=col=>col===histSortCol?(histSortDir>0?'↑':'↓'):'';
+  const thH=(col,label,align='right')=>`<th style="text-align:${align};cursor:pointer;user-select:none" onclick="sortHist('${col}')">${label} ${arr(col)}</th>`;
   let html=`<div class="card" style="padding:0;overflow:hidden"><div class="tscroll"><table>
     <thead><tr>
-      <th>Valeur</th>
-      <th style="text-align:right">Cours ${d1}</th>
-      <th style="text-align:right">Cours ${d2}</th>
-      <th style="text-align:right">Évol. cours</th>
-      <th style="text-align:right">Valeur ${d1}</th>
-      <th style="text-align:right">Valeur ${d2}</th>
-      <th style="text-align:right">Évol. valeur</th>
+      ${thH('name','Valeur','left')}
+      ${thH('p1',`Cours ${d1}`)}
+      ${thH('p2',`Cours ${d2}`)}
+      ${thH('chg','Évol. cours %')}
+      ${thH('v1',`Valeur ${d1}`)}
+      ${thH('v2',`Valeur ${d2}`)}
+      ${thH('vdiff','Évol. valeur €')}
+      ${thH('vchg','Évol. valeur %')}
     </tr></thead><tbody>`;
   rows.forEach(r=>{
     const chgHtml=r.chg!=null?fP(r.chg):'<span style="color:#ccc">—</span>';
     const vchgHtml=r.vchg!=null?fP(r.vchg):'<span style="color:#ccc">—</span>';
+    const vdiffHtml=r.vdiff?fE(r.vdiff):'<span style="color:#ccc">—</span>';
     html+=`<tr>
       <td style="font-size:12px;font-weight:500">${r.name}</td>
-      <td style="text-align:right">${r.p1?fN(r.p1,2):'—'}</td>
+      <td style="text-align:right;color:#888">${r.p1?fN(r.p1,2):'—'}</td>
       <td style="text-align:right;font-weight:500">${r.p2?fN(r.p2,2):'—'}</td>
       <td style="text-align:right">${chgHtml}</td>
       <td style="text-align:right;color:#888">${r.v1?Math.round(r.v1).toLocaleString('fr-FR')+'€':'—'}</td>
       <td style="text-align:right;font-weight:500">${r.v2?Math.round(r.v2).toLocaleString('fr-FR')+'€':'—'}</td>
+      <td style="text-align:right">${vdiffHtml}</td>
       <td style="text-align:right">${vchgHtml}</td>
     </tr>`;
   });
   html+=`</tbody></table></div></div>`;
   document.getElementById('hist-content').innerHTML=html;
+}
+
+function sortHist(col) {
+  if(histSortCol===col) histSortDir*=-1;
+  else { histSortCol=col; histSortDir=-1; }
+  renderHistorique();
 }
 
 // ── FILE PARSING ──────────────────────────────────────────────────────────────
