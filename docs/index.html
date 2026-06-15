@@ -19,6 +19,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   th{border-color:rgba(255,255,255,0.1);color:#888}
   tr:hover td{background:rgba(255,255,255,0.03)}
   select,input{background:#1c1c1e;color:#f0f0f0;border-color:#333}
+  .desk-card{background:#0d1117!important;border-color:rgba(255,255,255,0.07)!important}
+  .desk-section{border-color:rgba(255,255,255,0.07)!important}
+  .alert-danger{background:#1a0a0a!important}
+  .alert-success{background:#0a1a0a!important}
+  .alert-warning{background:#1a130a!important}
+  .alert-info{background:#0a111a!important}
+  .reco-card{background:#1c1c1e!important;border-color:rgba(255,255,255,0.07)!important}
+  .hist-card{background:#1c1c1e!important;border-color:rgba(255,255,255,0.07)!important}
 }
 .topbar{background:#111;padding:11px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 .logo{color:#fff;font-size:15px;font-weight:500;display:flex;align-items:center;gap:8px}
@@ -103,9 +111,47 @@ tr:hover td{background:rgba(0,0,0,.02)}
 .hist-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
 .hist-controls select{padding:6px 10px;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;background:#fff;color:#1a1a1a}
 .hist-controls label{font-size:12px;color:#888}
-.hist-badge-pos{background:#EAF3DE;color:#3B6D11;padding:2px 6px;border-radius:4px;font-size:12px;font-weight:500}
-.hist-badge-neg{background:#FCEBEB;color:#A32D2D;padding:2px 6px;border-radius:4px;font-size:12px;font-weight:500}
-.hist-badge-neu{background:#F1EFE8;color:#888;padding:2px 6px;border-radius:4px;font-size:12px}
+/* ── DESK ─────────────────────────────────────────────────────────────────── */
+.desk-card{background:#fff;border:0.5px solid rgba(0,0,0,0.08);border-radius:12px;padding:20px 22px;margin-bottom:14px}
+.desk-header{border-bottom:0.5px solid rgba(0,0,0,0.07);padding-bottom:14px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px}
+.desk-title{font-size:18px;font-weight:500}
+.desk-date{font-size:11px;color:#888;margin-top:2px}
+.desk-section{border-top:0.5px solid rgba(0,0,0,0.06);padding-top:14px;margin-top:14px}
+.desk-section-title{font-size:11px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}
+.alert{border-radius:8px;padding:11px 14px;margin-bottom:8px;display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.5}
+.alert-danger{background:#FAECE7;border-left:3px solid #D85A30}
+.alert-success{background:#EAF3DE;border-left:3px solid #3B6D11}
+.alert-warning{background:#FAEEDA;border-left:3px solid #BA7517}
+.alert-info{background:#E6F1FB;border-left:3px solid #185FA5}
+.alert-icon{font-size:15px;flex-shrink:0;margin-top:1px}
+.alert-danger .alert-icon{color:#D85A30}
+.alert-success .alert-icon{color:#3B6D11}
+.alert-warning .alert-icon{color:#BA7517}
+.alert-info .alert-icon{color:#185FA5}
+.alert strong{font-weight:500}
+.reco-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(max-width:700px){.reco-grid{grid-template-columns:1fr}}
+.reco-card{background:#f8f8f5;border:0.5px solid rgba(0,0,0,0.06);border-radius:10px;padding:14px}
+.reco-horizon{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.reco-horizon.ct{color:#D85A30}
+.reco-horizon.mt{color:#BA7517}
+.reco-horizon.lt{color:#1D9E75}
+.reco-item{font-size:12px;color:#888;padding:5px 0;border-bottom:0.5px solid rgba(0,0,0,0.05);line-height:1.5;display:flex;gap:6px}
+.reco-item:last-child{border-bottom:none}
+.desk-streaming{font-size:13px;color:#888;line-height:1.9;min-height:40px}
+.desk-streaming .cursor{display:inline-block;width:2px;height:14px;background:#3B6D11;vertical-align:middle;animation:blink .7s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.btn-regen{padding:6px 14px;background:transparent;border:0.5px solid rgba(0,0,0,0.2);border-radius:6px;font-size:12px;cursor:pointer;color:#888;transition:all .15s;display:flex;align-items:center;gap:5px}
+.btn-regen:hover{background:#f0efe8;color:#1a1a1a}
+.hist-desk-item{padding:12px 0;border-bottom:0.5px solid rgba(0,0,0,0.06)}
+.hist-desk-item:last-child{border-bottom:none}
+.hist-desk-date{font-size:11px;color:#888;margin-bottom:4px}
+.hist-desk-preview{font-size:13px;color:#555;line-height:1.6}
+.hist-desk-recos{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.tracking-pill{font-size:11px;padding:2px 8px;border-radius:20px;display:inline-flex;align-items:center;gap:4px}
+.tracking-ok{background:#EAF3DE;color:#3B6D11}
+.tracking-ko{background:#FCEBEB;color:#A32D2D}
+.tracking-pending{background:#F1EFE8;color:#888}
 </style>
 </head>
 <body>
@@ -118,7 +164,7 @@ tr:hover td{background:rgba(0,0,0,.02)}
 </div>
 
 <div class="topbar">
-  <div class="logo"><span class="dot"></span>Pascal Terminal <span style="color:#555;font-size:11px;font-weight:400;margin-left:2px">v4</span></div>
+  <div class="logo"><span class="dot"></span>Pascal Terminal <span style="color:#555;font-size:11px;font-weight:400;margin-left:2px">v5</span></div>
   <div class="topbar-right" id="topbar-meta">Chargement...</div>
 </div>
 
@@ -128,6 +174,7 @@ tr:hover td{background:rgba(0,0,0,.02)}
   <button class="nav-btn" onclick="showTab('portefeuille',this)">Portefeuille</button>
   <button class="nav-btn" onclick="showTab('macro',this)">Macro</button>
   <button class="nav-btn" onclick="showTab('historique',this)">Historique</button>
+  <button class="nav-btn" onclick="showTab('desk-history',this)">Mémoire du desk</button>
   <button class="nav-btn" onclick="showTab('import',this)">Importer</button>
 </div>
 
@@ -179,20 +226,28 @@ tr:hover td{background:rgba(0,0,0,.02)}
   <div class="card">
     <div class="card-hd">Comparer deux périodes</div>
     <div class="hist-controls">
-      <div>
-        <label>Date de référence</label><br>
-        <select id="hist-date1" onchange="renderHistorique()"></select>
-      </div>
+      <div><label>Date de référence</label><br><select id="hist-date1" onchange="renderHistorique()"></select></div>
       <div style="font-size:20px;color:#888;padding-top:16px">→</div>
-      <div>
-        <label>Date de comparaison</label><br>
-        <select id="hist-date2" onchange="renderHistorique()"></select>
-      </div>
+      <div><label>Date de comparaison</label><br><select id="hist-date2" onchange="renderHistorique()"></select></div>
       <button class="flt" onclick="clearHistory()" style="margin-top:16px;color:#A32D2D;border-color:#A32D2D">Effacer l'historique</button>
     </div>
     <div id="hist-summary" style="margin-bottom:14px"></div>
   </div>
   <div id="hist-content"></div>
+</div>
+
+<!-- ── MÉMOIRE DU DESK ──────────────────────────────────────────────────── -->
+<div id="desk-history" class="section">
+  <div class="desk-card">
+    <div class="desk-header">
+      <div>
+        <div class="desk-title">Mémoire du desk</div>
+        <div class="desk-date">Historique complet des analyses — Claude apprend de ses préconisations passées</div>
+      </div>
+      <button class="btn-regen" onclick="clearDeskHistory()" style="color:#A32D2D;border-color:#A32D2D">🗑 Effacer mémoire</button>
+    </div>
+    <div id="desk-history-content"><div style="padding:30px;text-align:center;color:#888;font-size:13px">Aucune analyse sauvegardée.<br>Importez vos fichiers pour générer le premier commentaire.</div></div>
+  </div>
 </div>
 
 <div id="import" class="section">
@@ -228,6 +283,11 @@ tr:hover td{background:rgba(0,0,0,.02)}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const CLAUDE_MODEL = 'claude-sonnet-4-6';
+const DESK_HIST_KEY = 'pascal_desk_history_v2';
+const HIST_KEY = 'pascal_terminal_history';
+
 // ── AUTH ──────────────────────────────────────────────────────────────────────
 function checkPwd() {
   const v = document.getElementById('pwd-input').value;
@@ -246,53 +306,273 @@ if (sessionStorage.getItem('pt_ok') === '1') document.getElementById('pwd-screen
 let DATA = null;
 let sortCol = 'value_eur', sortDir = -1, brokerFilter = 'all';
 
-// ── HISTORIQUE (localStorage) ─────────────────────────────────────────────────
-const HIST_KEY = 'pascal_terminal_history';
+// ── MÉMOIRE DU DESK ───────────────────────────────────────────────────────────
+function loadDeskHistory() {
+  try { return JSON.parse(localStorage.getItem(DESK_HIST_KEY) || '[]'); } catch(e) { return []; }
+}
 
+function saveDeskHistory(arr) {
+  // Garder max 52 entrées (1 an de mémoire)
+  if (arr.length > 52) arr = arr.slice(arr.length - 52);
+  try { localStorage.setItem(DESK_HIST_KEY, JSON.stringify(arr)); } catch(e) {
+    // Si storage plein, supprimer les plus vieilles
+    arr = arr.slice(-20);
+    try { localStorage.setItem(DESK_HIST_KEY, JSON.stringify(arr)); } catch(e2) {}
+  }
+}
+
+function saveDeskEntry(entry) {
+  const history = loadDeskHistory();
+  // Éviter les doublons pour la même date
+  const idx = history.findIndex(h => h.date === entry.date);
+  if (idx >= 0) history[idx] = entry;
+  else history.push(entry);
+  history.sort((a, b) => a.date.localeCompare(b.date));
+  saveDeskHistory(history);
+}
+
+function clearDeskHistory() {
+  if (confirm('Effacer toute la mémoire du desk ? Cette action est irréversible.')) {
+    localStorage.removeItem(DESK_HIST_KEY);
+    toast('Mémoire du desk effacée');
+    renderDeskHistory();
+  }
+}
+
+// Construit le contexte historique à envoyer à Claude
+function buildHistoricalContext() {
+  const history = loadDeskHistory();
+  if (!history.length) return '';
+  // On envoie les 8 dernières semaines max pour rester dans les limites
+  const recent = history.slice(-8);
+  let ctx = '\n\n=== HISTORIQUE DES ANALYSES PRÉCÉDENTES ===\n';
+  ctx += '(Tu dois tenir compte de ces analyses passées pour évaluer tes préconisations antérieures et ajuster tes recommandations)\n\n';
+  for (const h of recent) {
+    ctx += `--- SEMAINE DU ${h.date} ---\n`;
+    ctx += `Portefeuille total: ${h.total_eur ? Math.round(h.total_eur).toLocaleString('fr-FR') + '€' : '?'}\n`;
+    if (h.recos_ct && h.recos_ct.length) ctx += `Préconisations CT émises: ${h.recos_ct.join(' | ')}\n`;
+    if (h.recos_mt && h.recos_mt.length) ctx += `Préconisations MT émises: ${h.recos_mt.join(' | ')}\n`;
+    if (h.recos_lt && h.recos_lt.length) ctx += `Préconisations LT émises: ${h.recos_lt.join(' | ')}\n`;
+    if (h.resume) ctx += `Résumé du desk: ${h.resume.slice(0, 300)}...\n`;
+    ctx += '\n';
+  }
+  ctx += '=== FIN HISTORIQUE ===\n';
+  return ctx;
+}
+
+// ── GÉNÉRATION COMMENTAIRE DESK VIA CLAUDE API ────────────────────────────────
+async function generateDeskComment(portfolio) {
+  const deskBox = document.getElementById('desk-comment-box');
+  const recoBox = document.getElementById('desk-reco-box');
+  if (!deskBox) return;
+
+  // Afficher le spinner de streaming
+  deskBox.innerHTML = `<div class="desk-streaming"><span class="spinner"></span>Le desk analyse votre portefeuille...<span class="cursor"></span></div>`;
+
+  // Construire le prompt avec données réelles + historique
+  const positions = portfolio.positions || [];
+  const top10 = [...positions].sort((a,b) => (b.value_eur||0)-(a.value_eur||0)).slice(0,15);
+  const mvPlus = positions.filter(p => p.pv_pct > 20).map(p => `${p.name} (+${p.pv_pct?.toFixed(1)}%)`).join(', ');
+  const mvMoins = positions.filter(p => p.pv_pct < -20).map(p => `${p.name} (${p.pv_pct?.toFixed(1)}%)`).join(', ');
+  const today = new Date().toLocaleDateString('fr-FR', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+  const histCtx = buildHistoricalContext();
+
+  const portfolioText = top10.map(p =>
+    `${p.name} (${p.broker}): ${p.qty ? p.qty + ' titres' : ''} ${p.price ? '@ ' + p.price?.toFixed(2) : ''} = ${p.value_eur ? Math.round(p.value_eur).toLocaleString('fr-FR') + '€' : '?'} | PV/MV: ${p.pv_pct != null ? (p.pv_pct >= 0 ? '+' : '') + p.pv_pct?.toFixed(1) + '%' : '?'} | Semaine: ${p.week_chg != null && p.week_chg !== 0 ? (p.week_chg >= 0 ? '+' : '') + p.week_chg?.toFixed(1) + '%' : '—'}`
+  ).join('\n');
+
+  const systemPrompt = `Tu es le desk d'analyse de Pascal Terminal, le broker IA personnel de Pascal Georges, investisseur parisien privé. Tu combines la rigueur d'un analyste sell-side senior, la vision macro d'un gérant de fonds global, et la connaissance intime du portefeuille de Pascal.
+
+Ton rôle : chaque samedi, après l'import du portefeuille, tu génères un commentaire du desk complet, structuré, actionnable. Tu parles directement à Pascal à la deuxième personne. Tu es direct, précis, sans langue de bois.
+
+Tu dois IMPÉRATIVEMENT répondre en JSON valide avec cette structure exacte :
+{
+  "resume": "Synthèse de 2-3 phrases sur la semaine et l'état du portefeuille",
+  "contexte_macro": "Analyse macro et géopolitique de la semaine en 3-5 phrases",
+  "alertes": [
+    {"type": "danger|success|warning|info", "titre": "...", "detail": "..."}
+  ],
+  "recos_ct": ["Préconisation 1 court terme", "Préconisation 2", "Préconisation 3"],
+  "recos_mt": ["Préconisation 1 moyen terme", "Préconisation 2", "Préconisation 3"],
+  "recos_lt": ["Préconisation 1 long terme", "Préconisation 2", "Préconisation 3"],
+  "suivi_preco": "Évaluation de tes préconisations des semaines passées : ont-elles été bonnes ? Lesquelles ont été validées ou invalidées par le marché ? Que corriges-tu ?"
+}
+
+Ne réponds QUE avec le JSON, sans markdown, sans texte avant ou après.${histCtx}`;
+
+  const userPrompt = `Nous sommes le ${today}.
+
+PORTEFEUILLE DE PASCAL (15 principales positions par valeur) :
+${portfolioText}
+
+Total portefeuille : ${Math.round(portfolio.total_value_eur || 0).toLocaleString('fr-FR')}€
+PV/MV globale : ${portfolio.total_pv_eur >= 0 ? '+' : ''}${Math.round(portfolio.total_pv_eur || 0).toLocaleString('fr-FR')}€ (${portfolio.total_pv_pct >= 0 ? '+' : ''}${portfolio.total_pv_pct?.toFixed(1)}%)
+Courtiers : ${portfolio.brokers?.join(', ')}
+${mvPlus ? '\nPositions en forte plus-value (>+20%) : ' + mvPlus : ''}
+${mvMoins ? '\nPositions en forte moins-value (< -20%) : ' + mvMoins : ''}
+
+Génère le commentaire du desk complet pour cette semaine. Utilise ta connaissance de l'actualité financière et géopolitique de cette semaine (contexte Iran, Fed, technologie, marchés) pour personnaliser l'analyse.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: CLAUDE_MODEL,
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+
+    if (!resp.ok) throw new Error(`API error ${resp.status}`);
+    const data = await resp.json();
+    const rawText = data.content?.find(b => b.type === 'text')?.text || '';
+
+    // Parser le JSON retourné
+    let desk;
+    try {
+      const clean = rawText.replace(/```json|```/g, '').trim();
+      desk = JSON.parse(clean);
+    } catch(e) {
+      throw new Error('JSON invalide retourné par le modèle');
+    }
+
+    // Afficher le commentaire
+    renderDeskComment(desk);
+
+    // Sauvegarder en mémoire
+    const today_iso = new Date().toISOString().slice(0,10);
+    saveDeskEntry({
+      date: today_iso,
+      total_eur: portfolio.total_value_eur,
+      resume: desk.resume,
+      contexte_macro: desk.contexte_macro,
+      alertes: desk.alertes,
+      recos_ct: desk.recos_ct,
+      recos_mt: desk.recos_mt,
+      recos_lt: desk.recos_lt,
+      suivi_preco: desk.suivi_preco,
+      generated_at: new Date().toISOString()
+    });
+
+    // Mettre à jour l'onglet mémoire si ouvert
+    renderDeskHistory();
+    toast('✓ Commentaire du desk généré');
+
+  } catch(e) {
+    deskBox.innerHTML = `<div style="color:#A32D2D;font-size:13px;padding:10px">
+      ⚠ Erreur lors de la génération : ${e.message}<br>
+      <span style="font-size:12px;color:#888">Vérifiez votre connexion et réessayez.</span>
+    </div>`;
+    console.error('Desk generation error:', e);
+  }
+}
+
+function renderDeskComment(desk) {
+  const deskBox = document.getElementById('desk-comment-box');
+  const recoBox = document.getElementById('desk-reco-box');
+  const suiviBox = document.getElementById('desk-suivi-box');
+  if (!deskBox) return;
+
+  // Commentaire macro
+  let html = `<div style="font-size:13px;color:#555;line-height:1.8;margin-bottom:12px"><strong style="color:#1a1a1a">${desk.resume || ''}</strong></div>`;
+  if (desk.contexte_macro) html += `<div style="font-size:13px;color:#666;line-height:1.8">${desk.contexte_macro}</div>`;
+  deskBox.innerHTML = html;
+
+  // Alertes
+  if (desk.alertes && desk.alertes.length && recoBox) {
+    const iconMap = {danger:'⚠', success:'✓', warning:'⚡', info:'ℹ'};
+    let alertHtml = '';
+    for (const a of desk.alertes) {
+      alertHtml += `<div class="alert alert-${a.type || 'info'}">
+        <span class="alert-icon">${iconMap[a.type] || 'ℹ'}</span>
+        <div><strong>${a.titre || ''}</strong><br><span style="color:#666">${a.detail || ''}</span></div>
+      </div>`;
+    }
+    // Préconisations
+    const mkReco = (items, cls, label) => {
+      if (!items || !items.length) return '';
+      return `<div class="reco-card">
+        <div class="reco-horizon ${cls}">${label}</div>
+        ${items.map(r => `<div class="reco-item"><span style="flex-shrink:0;color:#888">→</span><span>${r}</span></div>`).join('')}
+      </div>`;
+    };
+    recoBox.innerHTML = alertHtml + `<div class="reco-grid" style="margin-top:12px">
+      ${mkReco(desk.recos_ct, 'ct', 'Court terme · 0-4 semaines')}
+      ${mkReco(desk.recos_mt, 'mt', 'Moyen terme · 1-3 mois')}
+      ${mkReco(desk.recos_lt, 'lt', 'Long terme · 3-12 mois')}
+    </div>`;
+  }
+
+  // Suivi préconisations
+  if (desk.suivi_preco && suiviBox) {
+    suiviBox.innerHTML = `<div style="font-size:13px;color:#666;line-height:1.8;font-style:italic">${desk.suivi_preco}</div>`;
+    document.getElementById('desk-suivi-section').style.display = 'block';
+  }
+}
+
+// ── RENDER MÉMOIRE DU DESK ────────────────────────────────────────────────────
+function renderDeskHistory() {
+  const container = document.getElementById('desk-history-content');
+  if (!container) return;
+  const history = loadDeskHistory();
+  if (!history.length) {
+    container.innerHTML = `<div style="padding:30px;text-align:center;color:#888;font-size:13px">Aucune analyse sauvegardée.<br>Importez vos fichiers pour générer le premier commentaire.</div>`;
+    return;
+  }
+  // Afficher du plus récent au plus ancien
+  const sorted = [...history].reverse();
+  let html = '';
+  for (const h of sorted) {
+    const dateStr = new Date(h.date).toLocaleDateString('fr-FR', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+    const allRecos = [...(h.recos_ct||[]), ...(h.recos_mt||[]), ...(h.recos_lt||[])];
+    html += `<div class="hist-desk-item">
+      <div class="hist-desk-date">${dateStr} · ${h.total_eur ? Math.round(h.total_eur).toLocaleString('fr-FR') + '€' : ''}</div>
+      <div class="hist-desk-preview">${h.resume || ''}</div>
+      ${allRecos.length ? `<div class="hist-desk-recos">${allRecos.slice(0,4).map(r => `<span class="badge bg-gray" style="font-size:11px">${r.slice(0,50)}${r.length>50?'...':''}</span>`).join('')}</div>` : ''}
+      ${h.suivi_preco ? `<div style="font-size:12px;color:#854F0B;margin-top:6px;font-style:italic">📊 ${h.suivi_preco.slice(0,200)}...</div>` : ''}
+    </div>`;
+  }
+  container.innerHTML = html;
+}
+
+// ── HISTORIQUE PORTEFEUILLE ───────────────────────────────────────────────────
 function loadHistory() {
   try { return JSON.parse(localStorage.getItem(HIST_KEY) || '{}'); } catch(e) { return {}; }
 }
-
 function saveHistory(h) {
   try { localStorage.setItem(HIST_KEY, JSON.stringify(h)); } catch(e) {
     toast('⚠ Historique plein — effacez les anciennes données');
   }
 }
-
 function saveSnapshot(date, positions) {
   const h = loadHistory();
-  // Stocker cours par identifiant unique (name+broker)
   const snap = {};
   for (const p of positions) {
     const key = `${p.broker}|${p.name}`;
     snap[key] = { price: p.price, value_eur: p.value_eur, pv_eur: p.pv_eur, pv_pct: p.pv_pct };
   }
   h[date] = { date, snap, total_eur: positions.reduce((s,p)=>s+(p.value_eur||0),0), total_pv: positions.reduce((s,p)=>s+(p.pv_eur||0),0) };
-  // Garder max 52 semaines
   const dates = Object.keys(h).sort();
   if (dates.length > 52) delete h[dates[0]];
   saveHistory(h);
   return h;
 }
-
 function getWeekChg(positions) {
-  // Compare avec le snapshot le plus récent AVANT aujourd'hui
   const h = loadHistory();
   const today = new Date().toISOString().slice(0,10);
   const dates = Object.keys(h).sort().filter(d => d < today);
-  if (!dates.length) return positions; // pas d'historique encore
-
+  if (!dates.length) return positions;
   const prevSnap = h[dates[dates.length-1]].snap;
   return positions.map(p => {
     const key = `${p.broker}|${p.name}`;
     const prev = prevSnap[key];
-    if (prev && prev.price && p.price && prev.price > 0) {
+    if (prev && prev.price && p.price && prev.price > 0)
       p.week_chg = Math.round((p.price - prev.price) / prev.price * 1000) / 10;
-    }
     return p;
   });
 }
-
 function clearHistory() {
   if (confirm('Effacer tout l\'historique de cours ?')) {
     localStorage.removeItem(HIST_KEY);
@@ -309,7 +589,14 @@ const badge = (t,c='bg-gray') => `<span class="badge ${c}">${t}</span>`;
 const brokerBadge = b => { const m={boursorama:['bg-blue','Boursorama'],interactive_brokers:['bg-green','IB'],linxea:['bg-amber','Linxea']}; const [cls,lbl]=m[b]||['bg-gray',b||'?']; return badge(lbl,cls); };
 const actionBadge = t => { const m={ACHAT_CT:'bg-green',ACHAT_LT:'bg-teal',VENTE:'bg-red',ALLEGER:'bg-amber',SHORT:'bg-purple',SURVEILLER:'bg-blue',HEDGER:'bg-purple'}; return badge(t,m[t]||'bg-gray'); };
 function toast(msg) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3500); }
-function showTab(id,btn) { document.querySelectorAll('.section').forEach(s=>s.classList.remove('active')); document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active')); document.getElementById(id).classList.add('active'); btn.classList.add('active'); if(id==='historique')renderHistorique(); }
+function showTab(id,btn) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='historique') renderHistorique();
+  if(id==='desk-history') renderDeskHistory();
+}
 
 // ── LOAD DATA ─────────────────────────────────────────────────────────────────
 async function loadData() {
@@ -317,7 +604,6 @@ async function loadData() {
     const r = await fetch('latest_briefing.json?t='+Date.now());
     if (!r.ok) throw new Error();
     DATA = await r.json();
-    // Restaurer portfolio depuis sessionStorage si plus récent
     const live = sessionStorage.getItem('portfolio_live');
     if (live) {
       try {
@@ -361,6 +647,27 @@ function renderSamedi() {
     <div class="kpi"><div class="lbl">EUR/USD</div><div class="val">${fN(p.eurusd||1.13,4)}</div><div class="sub neu">Taux de référence</div></div>
     <div class="kpi"><div class="lbl">Marché</div><div class="val" style="display:flex;gap:4px;flex-wrap:wrap;font-size:13px;padding-top:4px">${badge(a.orientation_marche||'?',orMap[a.orientation_marche]||'bg-gray')} ${badge(a.niveau_risque||'?',rlMap[a.niveau_risque]||'bg-amber')}</div></div>
   </div>`;
+
+  // ── COMMENTAIRE DU DESK (zone principale) ─────────────────────────────────
+  html += `<div class="desk-card">
+    <div class="desk-header">
+      <div>
+        <div class="desk-title">📊 Commentaire du desk</div>
+        <div class="desk-date" id="desk-generated-at">Généré automatiquement après import</div>
+      </div>
+      <button class="btn-regen" onclick="regenerateDesk()">↻ Regénérer</button>
+    </div>
+    <div id="desk-comment-box" class="desk-streaming">
+      <span style="color:#888;font-size:13px">Le commentaire du desk sera généré automatiquement après l'import de vos fichiers.</span>
+    </div>
+    <div id="desk-reco-box" class="desk-section" style="display:none"></div>
+    <div id="desk-suivi-section" class="desk-section" style="display:none">
+      <div class="desk-section-title">📈 Suivi des préconisations passées</div>
+      <div id="desk-suivi-box"></div>
+    </div>
+  </div>`;
+
+  // Actions prioritaires
   const actions=a.actions_samedi_matin||[];
   if(actions.length){
     html+=`<div class="card"><div class="card-hd">Actions prioritaires ce samedi</div>`;
@@ -376,18 +683,12 @@ function renderSamedi() {
           ${act.montant_suggere?`<div style="font-weight:500">${Math.round(act.montant_suggere).toLocaleString('fr-FR')}€</div>`:''}
           ${act.prix_cible?`<div style="color:#3B6D11">→ ${act.prix_cible}</div>`:''}
           ${act.stop_loss?`<div style="color:#A32D2D">Stop: ${act.stop_loss}</div>`:''}
-          <div style="margin-top:3px;color:#BA7517">${'★'.repeat(act.conviction||3)+'☆'.repeat(5-(act.conviction||3))}</div>
         </div>
       </div>`;
     });
     html+=`</div>`;
   }
-  const watch=a.positions_a_surveiller||[];
-  if(watch.length){
-    html+=`<div class="card"><div class="card-hd">Positions à surveiller</div>`;
-    watch.forEach(w=>{html+=`<div style="padding:8px 0;border-bottom:0.5px solid rgba(0,0,0,0.06)"><div style="font-size:13px;font-weight:500">${w.nom||''} <span style="color:#888;font-size:11px">${w.ticker||''}</span></div><div style="font-size:12px;color:#888;margin-top:2px">${w.situation||''}</div><div style="font-size:12px;color:#854F0B;margin-top:2px">→ ${w.action_si||''}</div></div>`;});
-    html+=`</div>`;
-  }
+
   const drivers=a.macro_drivers||[];
   if(drivers.length){
     const dc={POSITIF:'bg-green',NEGATIF:'bg-red',NEUTRE:'bg-gray'};
@@ -395,11 +696,26 @@ function renderSamedi() {
     drivers.forEach(d=>{html+=`<div class="driver-row">${badge(d.impact||'?',dc[d.impact]||'bg-gray')} <div><strong style="font-size:13px">${d.facteur||''}</strong><span style="color:#888;font-size:12px"> — ${d.detail||''}</span></div></div>`;});
     html+=`</div>`;
   }
-  if(a.commentaire_weekend) html+=`<div class="card"><div class="card-hd">Commentaire du desk</div><div class="comment-box">${a.commentaire_weekend}</div></div>`;
-  document.getElementById('samedi-content').innerHTML=html;
+
+  document.getElementById('samedi-content').innerHTML = html;
+
+  // Charger le dernier desk depuis la mémoire si disponible
+  const deskHistory = loadDeskHistory();
+  if (deskHistory.length) {
+    const last = deskHistory[deskHistory.length - 1];
+    renderDeskComment(last);
+    const el = document.getElementById('desk-generated-at');
+    if (el) el.textContent = `Dernière analyse : ${new Date(last.generated_at || last.date).toLocaleString('fr-FR')}`;
+    document.getElementById('desk-reco-box').style.display = 'block';
+  }
 }
 
-// ── RENDER OPPS ───────────────────────────────────────────────────────────────
+function regenerateDesk() {
+  if (!DATA || !DATA.portfolio) { toast('⚠ Importez d\'abord vos fichiers'); return; }
+  generateDeskComment(DATA.portfolio);
+}
+
+// ── RENDER OPPS / MACRO / PTF (inchangés) ────────────────────────────────────
 function renderOpps() {
   if (!DATA) return;
   const a=DATA.analysis||{}, ct=a.top_screener_ct||[], lt=a.top_screener_lt||[], sec=a.secteurs||{};
@@ -416,7 +732,6 @@ function renderOpps() {
   document.getElementById('opps-content').innerHTML=html;
 }
 
-// ── RENDER PORTEFEUILLE ───────────────────────────────────────────────────────
 function renderPtf() {
   if (!DATA) return;
   const p=DATA.portfolio||{};
@@ -427,24 +742,12 @@ function renderPtf() {
   document.getElementById('ptf-body').innerHTML=positions.length?positions.map(pos=>{
     const wk=pos.week_chg;
     const wkHtml = wk!=null&&wk!==0 ? fP(wk) : '<span style="color:#ccc">—</span>';
-    return `<tr>
-      <td>${brokerBadge(pos.broker)}</td>
-      <td style="font-size:12px;font-weight:500;max-width:160px">${pos.name||''}</td>
-      <td style="text-align:right">${pos.qty!=null?fN(pos.qty,0):'—'}</td>
-      <td style="text-align:right;color:#888">${pos.pru?fN(pos.pru,2):'—'}</td>
-      <td style="text-align:right;font-weight:500">${pos.price?fN(pos.price,2):'—'}</td>
-      <td style="text-align:right">${pos.value_eur?Math.round(pos.value_eur).toLocaleString('fr-FR')+'€':'—'}</td>
-      <td style="text-align:right">${fE(pos.pv_eur)}</td>
-      <td style="text-align:right">${fP(pos.pv_pct)}</td>
-      <td style="text-align:right">${wkHtml}</td>
-    </tr>`;
+    return `<tr><td>${brokerBadge(pos.broker)}</td><td style="font-size:12px;font-weight:500;max-width:160px">${pos.name||''}</td><td style="text-align:right">${pos.qty!=null?fN(pos.qty,0):'—'}</td><td style="text-align:right;color:#888">${pos.pru?fN(pos.pru,2):'—'}</td><td style="text-align:right;font-weight:500">${pos.price?fN(pos.price,2):'—'}</td><td style="text-align:right">${pos.value_eur?Math.round(pos.value_eur).toLocaleString('fr-FR')+'€':'—'}</td><td style="text-align:right">${fE(pos.pv_eur)}</td><td style="text-align:right">${fP(pos.pv_pct)}</td><td style="text-align:right">${wkHtml}</td></tr>`;
   }).join(''):`<tr><td colspan="9" style="text-align:center;padding:20px;color:#888">Aucune position.</td></tr>`;
 }
-
 function sortPtf(col){if(sortCol===col)sortDir*=-1;else{sortCol=col;sortDir=-1;}renderPtf();}
 function filterBroker(broker,btn){brokerFilter=broker;document.querySelectorAll('#broker-filters .flt').forEach(b=>b.classList.remove('on'));btn.classList.add('on');renderPtf();}
 
-// ── RENDER MACRO ──────────────────────────────────────────────────────────────
 function renderMacro() {
   if (!DATA) return;
   const macro=DATA.macro||{};
@@ -467,7 +770,6 @@ function renderMacro() {
 
 // ── RENDER HISTORIQUE ─────────────────────────────────────────────────────────
 let histSortCol = 'vchg', histSortDir = -1;
-
 function renderHistorique() {
   const h = loadHistory();
   const dates = Object.keys(h).sort().reverse();
@@ -487,16 +789,8 @@ function renderHistorique() {
   const snap1 = h[d1]?.snap || {};
   const snap2 = h[d2]?.snap || {};
   const tv1=h[d1]?.total_eur||0, tv2=h[d2]?.total_eur||0;
-  const pv1=h[d1]?.total_pv||0, pv2=h[d2]?.total_pv||0;
-  const tvDiff=tv2-tv1, pvDiff=pv2-pv1;
-  document.getElementById('hist-summary').innerHTML=`
-    <div class="g4" style="margin:0">
-      <div class="kpi"><div class="lbl">Valeur ${d1}</div><div class="val">${Math.round(tv1).toLocaleString('fr-FR')}€</div></div>
-      <div class="kpi"><div class="lbl">Valeur ${d2}</div><div class="val">${Math.round(tv2).toLocaleString('fr-FR')}€</div></div>
-      <div class="kpi"><div class="lbl">Évolution valeur</div><div class="val ${tvDiff>=0?'pos':'neg'}">${tvDiff>=0?'+':''}${Math.round(tvDiff).toLocaleString('fr-FR')}€</div><div class="sub ${tvDiff>=0?'pos':'neg'}">${tv1?((tvDiff/tv1*100).toFixed(1)+'%'):''}</div></div>
-      <div class="kpi"><div class="lbl">Évolution PV/MV</div><div class="val ${pvDiff>=0?'pos':'neg'}">${pvDiff>=0?'+':''}${Math.round(pvDiff).toLocaleString('fr-FR')}€</div></div>
-    </div>`;
-  // Construire les lignes
+  const tvDiff=tv2-tv1, pvDiff=(h[d2]?.total_pv||0)-(h[d1]?.total_pv||0);
+  document.getElementById('hist-summary').innerHTML=`<div class="g4" style="margin:0"><div class="kpi"><div class="lbl">Valeur ${d1}</div><div class="val">${Math.round(tv1).toLocaleString('fr-FR')}€</div></div><div class="kpi"><div class="lbl">Valeur ${d2}</div><div class="val">${Math.round(tv2).toLocaleString('fr-FR')}€</div></div><div class="kpi"><div class="lbl">Évolution valeur</div><div class="val ${tvDiff>=0?'pos':'neg'}">${tvDiff>=0?'+':''}${Math.round(tvDiff).toLocaleString('fr-FR')}€</div><div class="sub ${tvDiff>=0?'pos':'neg'}">${tv1?((tvDiff/tv1*100).toFixed(1)+'%'):''}</div></div><div class="kpi"><div class="lbl">Évolution PV/MV</div><div class="val ${pvDiff>=0?'pos':'neg'}">${pvDiff>=0?'+':''}${Math.round(pvDiff).toLocaleString('fr-FR')}€</div></div></div>`;
   const allKeys = new Set([...Object.keys(snap1),...Object.keys(snap2)]);
   const rows = [];
   for (const key of allKeys) {
@@ -504,57 +798,18 @@ function renderHistorique() {
     if (!s1&&!s2) continue;
     const p1=s1?.price||0, p2=s2?.price||0;
     const v1=s1?.value_eur||0, v2=s2?.value_eur||0;
-    const chg = p1>0 ? (p2-p1)/p1*100 : null;
-    const vchg = v1>0 ? (v2-v1)/v1*100 : null;
-    const vdiff = v2-v1;
-    const name = key.split('|')[1]||key;
-    rows.push({name, p1, p2, v1, v2, chg, vchg, vdiff});
+    const chg=p1>0?(p2-p1)/p1*100:null, vchg=v1>0?(v2-v1)/v1*100:null, vdiff=v2-v1;
+    rows.push({name:key.split('|')[1]||key,p1,p2,v1,v2,chg,vchg,vdiff});
   }
-  // Tri
-  rows.sort((a,b)=>{
-    let va=a[histSortCol], vb=b[histSortCol];
-    if(va==null)va=histSortDir>0?1e12:-1e12;
-    if(vb==null)vb=histSortDir>0?1e12:-1e12;
-    return typeof va==='string'?histSortDir*va.localeCompare(vb):histSortDir*(va-vb);
-  });
-  // Flèche de tri
+  rows.sort((a,b)=>{let va=a[histSortCol],vb=b[histSortCol];if(va==null)va=histSortDir>0?1e12:-1e12;if(vb==null)vb=histSortDir>0?1e12:-1e12;return typeof va==='string'?histSortDir*va.localeCompare(vb):histSortDir*(va-vb);});
   const arr=col=>col===histSortCol?(histSortDir>0?'↑':'↓'):'';
-  const thH=(col,label,align='right')=>`<th style="text-align:${align};cursor:pointer;user-select:none" onclick="sortHist('${col}')">${label} ${arr(col)}</th>`;
-  let html=`<div class="card" style="padding:0;overflow:hidden"><div class="tscroll"><table>
-    <thead><tr>
-      ${thH('name','Valeur','left')}
-      ${thH('p1',`Cours ${d1}`)}
-      ${thH('p2',`Cours ${d2}`)}
-      ${thH('chg','Évol. cours %')}
-      ${thH('v1',`Valeur ${d1}`)}
-      ${thH('v2',`Valeur ${d2}`)}
-      ${thH('vdiff','Évol. valeur €')}
-      ${thH('vchg','Évol. valeur %')}
-    </tr></thead><tbody>`;
-  rows.forEach(r=>{
-    const chgHtml=r.chg!=null?fP(r.chg):'<span style="color:#ccc">—</span>';
-    const vchgHtml=r.vchg!=null?fP(r.vchg):'<span style="color:#ccc">—</span>';
-    const vdiffHtml=r.vdiff?fE(r.vdiff):'<span style="color:#ccc">—</span>';
-    html+=`<tr>
-      <td style="font-size:12px;font-weight:500">${r.name}</td>
-      <td style="text-align:right;color:#888">${r.p1?fN(r.p1,2):'—'}</td>
-      <td style="text-align:right;font-weight:500">${r.p2?fN(r.p2,2):'—'}</td>
-      <td style="text-align:right">${chgHtml}</td>
-      <td style="text-align:right;color:#888">${r.v1?Math.round(r.v1).toLocaleString('fr-FR')+'€':'—'}</td>
-      <td style="text-align:right;font-weight:500">${r.v2?Math.round(r.v2).toLocaleString('fr-FR')+'€':'—'}</td>
-      <td style="text-align:right">${vdiffHtml}</td>
-      <td style="text-align:right">${vchgHtml}</td>
-    </tr>`;
-  });
+  const thH=(col,label,align='right')=>`<th style="text-align:${align};cursor:pointer" onclick="sortHist('${col}')">${label} ${arr(col)}</th>`;
+  let html=`<div class="card" style="padding:0;overflow:hidden"><div class="tscroll"><table><thead><tr>${thH('name','Valeur','left')}${thH('p1',`Cours ${d1}`)}${thH('p2',`Cours ${d2}`)}${thH('chg','Évol. %')}${thH('v1',`Valeur ${d1}`)}${thH('v2',`Valeur ${d2}`)}${thH('vdiff','Évol. €')}${thH('vchg','Évol. %')}</tr></thead><tbody>`;
+  rows.forEach(r=>{html+=`<tr><td style="font-size:12px;font-weight:500">${r.name}</td><td style="text-align:right;color:#888">${r.p1?fN(r.p1,2):'—'}</td><td style="text-align:right;font-weight:500">${r.p2?fN(r.p2,2):'—'}</td><td style="text-align:right">${r.chg!=null?fP(r.chg):'—'}</td><td style="text-align:right;color:#888">${r.v1?Math.round(r.v1).toLocaleString('fr-FR')+'€':'—'}</td><td style="text-align:right;font-weight:500">${r.v2?Math.round(r.v2).toLocaleString('fr-FR')+'€':'—'}</td><td style="text-align:right">${r.vdiff?fE(r.vdiff):'—'}</td><td style="text-align:right">${r.vchg!=null?fP(r.vchg):'—'}</td></tr>`;});
   html+=`</tbody></table></div></div>`;
   document.getElementById('hist-content').innerHTML=html;
 }
-
-function sortHist(col) {
-  if(histSortCol===col) histSortDir*=-1;
-  else { histSortCol=col; histSortDir=-1; }
-  renderHistorique();
-}
+function sortHist(col){if(histSortCol===col)histSortDir*=-1;else{histSortCol=col;histSortDir=-1;}renderHistorique();}
 
 // ── FILE PARSING ──────────────────────────────────────────────────────────────
 function parseNum(s) {
@@ -564,54 +819,42 @@ function parseNum(s) {
   else if(s.includes(',')&&s.includes('.'))s=s.replace('.','').replace(',','.');
   const n=parseFloat(s); return isNaN(n)?null:n;
 }
-
 function parseBoursorama(text) {
   const lines=text.split('\n');
   const headers=lines[0].split(';').map(h=>h.trim().replace(/"/g,''));
   const positions=[], seen=new Set();
   for(let i=1;i<lines.length;i++){
-    const cols=lines[i].split(';');
-    if(cols.length<3)continue;
-    const row={};
-    headers.forEach((h,j)=>row[h]=(cols[j]||'').trim().replace(/"/g,''));
+    const cols=lines[i].split(';'); if(cols.length<3)continue;
+    const row={}; headers.forEach((h,j)=>row[h]=(cols[j]||'').trim().replace(/"/g,''));
     const name=row['name']||''; if(!name||seen.has(name))continue; seen.add(name);
-    const isin=row['isin']||'';
     const qty=parseNum(row['quantity']), pru=parseNum(row['buyingPrice']);
     const price=parseNum(row['lastPrice']), value=parseNum(row['amount']);
     const vari=parseNum(row['variation']);
-    // TOUT est en EUR chez Boursorama
     const pv_eur=value&&pru&&pru>0&&qty?Math.round(value-pru*qty):null;
-    positions.push({broker:'boursorama',name:name.slice(0,35),isin,ticker:isin,
-      qty,pru:pru&&pru>0?pru:null,price,currency:'EUR',
-      value_eur:value,pv_pct:vari,pv_eur,week_chg:0});
+    positions.push({broker:'boursorama',name:name.slice(0,35),isin:row['isin']||'',
+      qty,pru:pru&&pru>0?pru:null,price,currency:'EUR',value_eur:value,pv_pct:vari,pv_eur,week_chg:0});
   }
   return positions;
 }
-
 function parseIB(text) {
   const lines=text.split('\n');
   const sep=lines[0].includes(';')?';':',';
   const headers=lines[0].split(sep).map(h=>h.trim().replace(/"/g,''));
   const positions=[];
   for(let i=1;i<lines.length;i++){
-    const cols=lines[i].split(sep);
-    if(cols.length<3)continue;
-    const row={};
-    headers.forEach((h,j)=>row[h]=(cols[j]||'').trim().replace(/"/g,''));
+    const cols=lines[i].split(sep); if(cols.length<3)continue;
+    const row={}; headers.forEach((h,j)=>row[h]=(cols[j]||'').trim().replace(/"/g,''));
     const name=row['Produit']||row['Description']||'';
     if(!name||name.includes('CASH'))continue;
-    const isin=row['Ticker/ISIN']||row['Symbol']||'';
     const qty=parseNum(row['Quantité']||row['Quantity']);
     const price=parseNum(row['Clôture']||row['Close Price']||row['Close']);
     const value=parseNum(row['Montant en EUR']||row['Value in EUR']);
     const cur=(row['Devise']||row['Currency']||'USD').trim();
-    positions.push({broker:'interactive_brokers',name:name.slice(0,35),isin,
-      ticker:isin,qty,pru:null,price,currency:cur,value_eur:value,
-      pv_eur:null,pv_pct:null,week_chg:0});
+    positions.push({broker:'interactive_brokers',name:name.slice(0,35),isin:row['Ticker/ISIN']||row['Symbol']||'',
+      qty,pru:null,price,currency:cur,value_eur:value,pv_eur:null,pv_pct:null,week_chg:0});
   }
   return positions;
 }
-
 function parseLinxea(workbook) {
   const ws=workbook.Sheets[workbook.SheetNames[0]];
   const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
@@ -619,8 +862,7 @@ function parseLinxea(workbook) {
   const headers=rows[0].map(h=>String(h||'').trim());
   const positions=[];
   for(let i=1;i<rows.length;i++){
-    const row={};
-    headers.forEach((h,j)=>row[h]=rows[i][j]);
+    const row={}; headers.forEach((h,j)=>row[h]=rows[i][j]);
     const name=String(row['Nom du support']||row['Support']||'').trim();
     if(!name)continue;
     const value=parseNum(row['Somme en Compte']||row['Valorisation']);
@@ -629,33 +871,28 @@ function parseLinxea(workbook) {
     const qty=parseNum(row['Nbre de parts']||row['Quantité']);
     if(!value)continue;
     const pvPct=pru&&qty&&pru>0?Math.round((value-pru*qty)/(pru*qty)*1000)/10:null;
-    positions.push({broker:'linxea',name:name.slice(0,35),isin:'',
-      ticker:null,qty,pru,price:pru,currency:'EUR',value_eur:value,
-      pv_eur:pv,pv_pct:pvPct,week_chg:0});
+    positions.push({broker:'linxea',name:name.slice(0,35),isin:'',qty,pru,price:pru,
+      currency:'EUR',value_eur:value,pv_eur:pv,pv_pct:pvPct,week_chg:0});
   }
   return positions;
 }
 
-// Linxea statique si fichier vide
 const LINXEA_STATIC = [
-  {broker:'linxea',name:'Amundi MSCI World IT',isin:'LU0533033667',ticker:null,qty:null,pru:null,price:null,currency:'EUR',value_eur:13069.81,pv_eur:1583.60,pv_pct:13.8,week_chg:3.9},
-  {broker:'linxea',name:'Ofi Precious Metals',isin:'FR0011170182',ticker:null,qty:null,pru:null,price:null,currency:'EUR',value_eur:12148.80,pv_eur:662.55,pv_pct:5.8,week_chg:6.8},
-  {broker:'linxea',name:'R-co Convertibles EU',isin:'FR0007009139',ticker:null,qty:null,pru:null,price:null,currency:'EUR',value_eur:11966.18,pv_eur:479.88,pv_pct:4.2,week_chg:0.1},
-  {broker:'linxea',name:'FCPR Ardian Multi strat.',isin:'FR0013486446',ticker:null,qty:null,pru:null,price:null,currency:'EUR',value_eur:10102.99,pv_eur:115.49,pv_pct:1.2,week_chg:0},
-  {broker:'linxea',name:'Amundi Nasdaq-100 Swap',isin:'LU1829221024',ticker:null,qty:null,pru:null,price:null,currency:'EUR',value_eur:1718.61,pv_eur:219.84,pv_pct:14.7,week_chg:3.1},
+  {broker:'linxea',name:'Amundi MSCI World IT',isin:'LU0533033667',qty:null,pru:null,price:null,currency:'EUR',value_eur:13069.81,pv_eur:1583.60,pv_pct:13.8,week_chg:3.9},
+  {broker:'linxea',name:'Ofi Precious Metals',isin:'FR0011170182',qty:null,pru:null,price:null,currency:'EUR',value_eur:12148.80,pv_eur:662.55,pv_pct:5.8,week_chg:6.8},
+  {broker:'linxea',name:'R-co Convertibles EU',isin:'FR0007009139',qty:null,pru:null,price:null,currency:'EUR',value_eur:11966.18,pv_eur:479.88,pv_pct:4.2,week_chg:0.1},
+  {broker:'linxea',name:'FCPR Ardian Multi strat.',isin:'FR0013486446',qty:null,pru:null,price:null,currency:'EUR',value_eur:10102.99,pv_eur:115.49,pv_pct:1.2,week_chg:0},
+  {broker:'linxea',name:'Amundi Nasdaq-100 Swap',isin:'LU1829221024',qty:null,pru:null,price:null,currency:'EUR',value_eur:1718.61,pv_eur:219.84,pv_pct:14.7,week_chg:3.1},
 ];
 
+// ── HANDLE FILES ──────────────────────────────────────────────────────────────
 async function handleFiles(files) {
   const status=document.getElementById('upload-status');
   const prog=document.getElementById('upload-progress');
   const fill=document.getElementById('progress-fill');
-  const detail=document.getElementById('progress-detail');
   const label=document.getElementById('progress-label');
-  status.innerHTML='';
-  prog.style.display='block';
-  label.textContent='Lecture des fichiers...';
-  fill.style.width='5%';
-
+  status.innerHTML=''; prog.style.display='block';
+  label.textContent='Lecture des fichiers...'; fill.style.width='5%';
   let allPositions=[], hasLinxea=false;
   const log=msg=>{status.innerHTML+=`<div style="font-size:12px;color:#3B6D11;padding:2px 0">✓ ${msg}</div>`;};
 
@@ -665,24 +902,19 @@ async function handleFiles(files) {
     if(ext==='csv'){
       const text=await file.text();
       if(fn.includes('export-positions')||fn.includes('boursorama')){
-        const pos=parseBoursorama(text);
-        allPositions=allPositions.concat(pos);
-        log(`Boursorama: ${pos.length} positions lues`);
+        const pos=parseBoursorama(text); allPositions=allPositions.concat(pos); log(`Boursorama: ${pos.length} positions`);
       } else {
-        const pos=parseIB(text);
-        if(pos.length){allPositions=allPositions.concat(pos);log(`IB: ${pos.length} positions lues`);}
+        const pos=parseIB(text); if(pos.length){allPositions=allPositions.concat(pos);log(`IB: ${pos.length} positions`);}
       }
     } else if(ext==='xlsx'||ext==='xls'){
       const ab=await file.arrayBuffer();
       const wb=XLSX.read(ab,{type:'array'});
       if(fn.includes('linxea')){
-        const pos=parseLinxea(wb);
-        if(pos.length){allPositions=allPositions.concat(pos);hasLinxea=true;log(`Linxea: ${pos.length} fonds lus`);}
+        const pos=parseLinxea(wb); if(pos.length){allPositions=allPositions.concat(pos);hasLinxea=true;log(`Linxea: ${pos.length} fonds`);}
       } else {
         const ws=wb.Sheets[wb.SheetNames[0]];
-        const text=XLSX.utils.sheet_to_csv(ws);
-        const pos=parseIB(text);
-        if(pos.length){allPositions=allPositions.concat(pos);log(`IB (xlsx): ${pos.length} positions lues`);}
+        const pos=parseIB(XLSX.utils.sheet_to_csv(ws));
+        if(pos.length){allPositions=allPositions.concat(pos);log(`IB xlsx: ${pos.length} positions`);}
       }
     }
   }
@@ -693,27 +925,16 @@ async function handleFiles(files) {
   const seen=new Set();
   allPositions=allPositions.filter(p=>{const k=`${p.broker}|${p.name}`;if(seen.has(k))return false;seen.add(k);return true;});
 
-  fill.style.width='50%';
-  label.textContent='Calcul des variations hebdomadaires...';
-
-  // Calculer les variations hebdomadaires depuis l'historique
+  fill.style.width='50%'; label.textContent='Calcul des variations...';
   allPositions=getWeekChg(allPositions);
 
-  fill.style.width='80%';
-  label.textContent='Sauvegarde de l\'historique...';
-
-  // Totaux
+  fill.style.width='75%'; label.textContent='Sauvegarde snapshot...';
   const total_eur=allPositions.reduce((s,p)=>s+(p.value_eur||0),0);
   const total_pv=allPositions.reduce((s,p)=>s+(p.pv_eur||0),0);
   const sorted=allPositions.sort((a,b)=>(b.value_eur||0)-(a.value_eur||0));
-
-  // Sauvegarder dans l'historique AVANT d'écraser
   const today=new Date().toISOString().slice(0,10);
   saveSnapshot(today, sorted);
 
-  fill.style.width='90%';
-
-  // Mettre à jour DATA
   const portfolio={
     positions:sorted, total_value_eur:Math.round(total_eur),
     total_pv_eur:Math.round(total_pv),
@@ -725,30 +946,37 @@ async function handleFiles(files) {
 
   if(!DATA){
     DATA={generated_at:new Date().toISOString(),date:today,week_number:getWeekNum(),
-      macro:{},screened_count:sorted.length,backtest:{},recent_calls:[],
-      analysis:{semaine_en_bref:'Portefeuille importé.',orientation_marche:'MIXTE',
-        niveau_risque:'MODERE',commentaire_weekend:'Portefeuille importé. Briefing automatique chaque samedi matin.',
+      macro:{},screened_count:sorted.length,
+      analysis:{orientation_marche:'MIXTE',niveau_risque:'MODERE',
         actions_samedi_matin:[],top_screener_ct:[],top_screener_lt:[],
-        positions_a_surveiller:[],macro_drivers:[],secteurs:{surponderer:[],alleger:[]}}};
+        macro_drivers:[],secteurs:{surponderer:[],alleger:[]}}};
   }
   DATA.portfolio=portfolio;
   DATA.week_number=DATA.week_number||getWeekNum();
-
   sessionStorage.setItem('portfolio_live',JSON.stringify(portfolio));
 
-  fill.style.width='100%';
-  prog.style.display='none';
+  fill.style.width='90%'; label.textContent='Génération commentaire du desk...';
 
-  // Compter les positions avec variation calculée
   const withChg=sorted.filter(p=>p.week_chg!==0&&p.week_chg!=null).length;
   status.innerHTML+=`<div style="font-size:13px;color:#3B6D11;padding:6px 0;font-weight:500;border-top:0.5px solid rgba(0,0,0,0.06);margin-top:6px">
-    ✓ ${sorted.length} positions importées · ${Math.round(total_eur).toLocaleString('fr-FR')}€ · PV/MV ${total_pv>=0?'+':''}${Math.round(total_pv).toLocaleString('fr-FR')}€<br>
-    <span style="font-weight:400;font-size:12px;color:#888">${withChg} variations hebdomadaires calculées${withChg===0?' (premier import — les variations apparaîtront dès la semaine prochaine)':''}</span>
+    ✓ ${sorted.length} positions · ${Math.round(total_eur).toLocaleString('fr-FR')}€ · PV/MV ${total_pv>=0?'+':''}${Math.round(total_pv).toLocaleString('fr-FR')}€<br>
+    <span style="font-weight:400;font-size:12px;color:#888">${withChg} variations calculées${withChg===0?' (premier import)':''}</span>
   </div>`;
 
   updateTopbar(); renderSamedi(); renderOpps(); renderMacro(); renderPtf();
-  toast(`✓ ${sorted.length} positions importées`);
-  document.querySelector('.nav-btn').click();
+
+  fill.style.width='100%';
+  setTimeout(() => { prog.style.display='none'; }, 500);
+
+  // ── Basculer sur l'onglet Plan du samedi et lancer le desk ──────────────
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelector('.nav-btn').classList.add('active');
+  document.getElementById('samedi').classList.add('active');
+
+  // Générer le commentaire du desk automatiquement
+  await generateDeskComment(portfolio);
+  toast(`✓ Import + commentaire du desk générés`);
 }
 
 function getWeekNum(){const d=new Date(),j=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));j.setUTCDate(j.getUTCDate()+4-(j.getUTCDay()||7));const y=new Date(Date.UTC(j.getUTCFullYear(),0,1));return Math.ceil((((j-y)/86400000)+1)/7);}
