@@ -388,6 +388,15 @@ Tu dois IMPÉRATIVEMENT répondre en JSON valide avec cette structure exacte :
   "alertes": [
     {"type": "danger|success|warning|info", "titre": "...", "detail": "..."}
   ],
+  "actions_samedi_matin": [
+    {"priorite": 1, "type": "VENTE|ACHAT_CT|ACHAT_LT|ALLEGER|SURVEILLER", "nom": "Nom exact de la position concernée", "courtier": "Boursorama|IB|Linxea", "rationale": "Pourquoi cette action, en une phrase", "montant_suggere": 1000, "prix_cible": "250€", "stop_loss": "230€"}
+  ],
+  "top_screener_ct": [
+    {"nom": "Nom de l'opportunité hors portefeuille", "ticker": "TICKER", "theme": "Thème macro (IA, défense, énergie...)", "prix": "100€", "cible_ct": "120€", "rationale": "Pourquoi cette idée maintenant", "momentum_score": 75}
+  ],
+  "top_screener_lt": [
+    {"nom": "Nom de la conviction long terme", "ticker": "TICKER", "theme": "Thème", "these_retraite": "La thèse d'investissement en une phrase", "montant_suggere": 2000}
+  ],
   "recos_ct": ["Préconisation 1 court terme", "Préconisation 2", "Préconisation 3"],
   "recos_mt": ["Préconisation 1 moyen terme", "Préconisation 2", "Préconisation 3"],
   "recos_lt": ["Préconisation 1 long terme", "Préconisation 2", "Préconisation 3"],
@@ -396,8 +405,12 @@ Tu dois IMPÉRATIVEMENT répondre en JSON valide avec cette structure exacte :
 
 CONTRAINTES STRICTES DE LONGUEUR (impératif pour éviter toute troncature) :
 - Maximum 5 alertes, chaque "detail" limité à 280 caractères maximum
+- Maximum 5 actions_samedi_matin, chaque "rationale" limité à 150 caractères maximum
+- Maximum 3 top_screener_ct et 3 top_screener_lt, chaque "rationale"/"these_retraite" limité à 150 caractères maximum
 - Chaque élément de recos_ct, recos_mt, recos_lt limité à 150 caractères maximum
 - "resume" maximum 400 caractères, "contexte_macro" maximum 600 caractères, "suivi_preco" maximum 400 caractères
+- actions_samedi_matin doit porter sur des positions RÉELLEMENT présentes dans le portefeuille fourni ci-dessous
+- top_screener_ct et top_screener_lt doivent être des idées HORS du portefeuille actuel (nouvelles opportunités)
 - Sois dense et percutant plutôt qu'exhaustif — la concision est une exigence absolue, pas une option
 
 Ne réponds QUE avec le JSON brut. Ne mets JAMAIS de balises markdown comme \`\`\`json ou \`\`\`. Ne mets AUCUN texte avant ou après le JSON. Ta réponse doit commencer directement par { et finir directement par }.${histCtx}`;
@@ -422,7 +435,7 @@ Génère le commentaire du desk complet pour cette semaine. Utilise ta connaissa
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: CLAUDE_MODEL,
-        max_tokens: 6000,
+        max_tokens: 8000,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }]
       })
@@ -446,6 +459,17 @@ Génère le commentaire du desk complet pour cette semaine. Utilise ta connaissa
       throw new Error('Réponse invalide du modèle (voir console pour le détail)');
     }
 
+    // Injecter les actions et opportunités pour affichage immédiat
+    // dans les onglets "Plan du samedi" (actions prioritaires) et "Opportunités"
+    if (DATA) {
+      DATA.analysis = DATA.analysis || {};
+      DATA.analysis.actions_samedi_matin = desk.actions_samedi_matin || [];
+      DATA.analysis.top_screener_ct = desk.top_screener_ct || [];
+      DATA.analysis.top_screener_lt = desk.top_screener_lt || [];
+      renderOpps();
+    }
+    renderActionsPrioritaires(desk.actions_samedi_matin || []);
+
     renderDeskComment(desk);
 
     const today_iso = new Date().toISOString().slice(0,10);
@@ -455,6 +479,9 @@ Génère le commentaire du desk complet pour cette semaine. Utilise ta connaissa
       resume: desk.resume,
       contexte_macro: desk.contexte_macro,
       alertes: desk.alertes,
+      actions_samedi_matin: desk.actions_samedi_matin,
+      top_screener_ct: desk.top_screener_ct,
+      top_screener_lt: desk.top_screener_lt,
       recos_ct: desk.recos_ct,
       recos_mt: desk.recos_mt,
       recos_lt: desk.recos_lt,
@@ -653,27 +680,6 @@ async function renderSamedi() {
     </div>
   </div>`;
 
-  const actions=a.actions_samedi_matin||[];
-  if(actions.length){
-    html+=`<div class="card"><div class="card-hd">Actions prioritaires ce samedi</div>`;
-    actions.forEach((act,i)=>{
-      const pc=i===0?'neg':i<=2?'':'pos';
-      html+=`<div class="action-row">
-        <div class="action-prio ${pc}">${act.priorite||i+1}</div>
-        <div class="action-body">
-          <div class="action-name">${actionBadge(act.type||'')} ${act.nom||''} ${act.disponible_pea?badge('PEA','bg-teal'):''}</div>
-          <div class="action-meta">${act.courtier||''} · ${act.rationale||''}</div>
-        </div>
-        <div class="action-stats">
-          ${act.montant_suggere?`<div style="font-weight:500">${Math.round(act.montant_suggere).toLocaleString('fr-FR')}€</div>`:''}
-          ${act.prix_cible?`<div style="color:#3B6D11">→ ${act.prix_cible}</div>`:''}
-          ${act.stop_loss?`<div style="color:#A32D2D">Stop: ${act.stop_loss}</div>`:''}
-        </div>
-      </div>`;
-    });
-    html+=`</div>`;
-  }
-
   const drivers=a.macro_drivers||[];
   if(drivers.length){
     const dc={POSITIF:'bg-green',NEGATIF:'bg-red',NEUTRE:'bg-gray'};
@@ -682,7 +688,10 @@ async function renderSamedi() {
     html+=`</div>`;
   }
 
+  html += `<div id="actions-prioritaires-box"></div>`;
+
   document.getElementById('samedi-content').innerHTML = html;
+  renderActionsPrioritaires(a.actions_samedi_matin||[]);
 
   const deskHistory = await loadDeskHistory();
   if (deskHistory.length) {
@@ -691,7 +700,32 @@ async function renderSamedi() {
     const el = document.getElementById('desk-generated-at');
     if (el) el.textContent = `Dernière analyse : ${new Date(last.generated_at || last.date).toLocaleString('fr-FR')}`;
     document.getElementById('desk-reco-box').style.display = 'block';
+    renderActionsPrioritaires(last.actions_samedi_matin||[]);
   }
+}
+
+function renderActionsPrioritaires(actions) {
+  const box = document.getElementById('actions-prioritaires-box');
+  if (!box) return;
+  if (!actions || !actions.length) { box.innerHTML = ''; return; }
+  let html = `<div class="card"><div class="card-hd">Actions prioritaires ce samedi</div>`;
+  actions.forEach((act,i)=>{
+    const pc=i===0?'neg':i<=2?'':'pos';
+    html+=`<div class="action-row">
+      <div class="action-prio ${pc}">${act.priorite||i+1}</div>
+      <div class="action-body">
+        <div class="action-name">${actionBadge(act.type||'')} ${act.nom||''} ${act.disponible_pea?badge('PEA','bg-teal'):''}</div>
+        <div class="action-meta">${act.courtier||''} · ${act.rationale||''}</div>
+      </div>
+      <div class="action-stats">
+        ${act.montant_suggere?`<div style="font-weight:500">${Math.round(act.montant_suggere).toLocaleString('fr-FR')}€</div>`:''}
+        ${act.prix_cible?`<div style="color:#3B6D11">→ ${act.prix_cible}</div>`:''}
+        ${act.stop_loss?`<div style="color:#A32D2D">Stop: ${act.stop_loss}</div>`:''}
+      </div>
+    </div>`;
+  });
+  html += `</div>`;
+  box.innerHTML = html;
 }
 
 function regenerateDesk() {
