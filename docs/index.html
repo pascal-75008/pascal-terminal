@@ -298,31 +298,50 @@ if (sessionStorage.getItem('pt_ok') === '1') document.getElementById('pwd-screen
 let DATA = null;
 let sortCol = 'value_eur', sortDir = -1, brokerFilter = 'all';
 
-function loadDeskHistory() { try { return JSON.parse(localStorage.getItem(DESK_HIST_KEY) || '[]'); } catch(e) { return []; } }
-function saveDeskHistory(arr) {
-  if (arr.length > 52) arr = arr.slice(arr.length - 52);
-  try { localStorage.setItem(DESK_HIST_KEY, JSON.stringify(arr)); } catch(e) {
-    arr = arr.slice(-20);
-    try { localStorage.setItem(DESK_HIST_KEY, JSON.stringify(arr)); } catch(e2) {}
+// Cache local en mémoire pour éviter de re-fetch à chaque rendu
+let _deskHistoryCache = null;
+
+async function loadDeskHistory() {
+  if (_deskHistoryCache) return _deskHistoryCache;
+  try {
+    const r = await fetch(WORKER_URL + 'get-history');
+    const data = await r.json();
+    _deskHistoryCache = Array.isArray(data) ? data : [];
+    return _deskHistoryCache;
+  } catch(e) {
+    console.error('Erreur lecture historique KV:', e);
+    return [];
   }
 }
-function saveDeskEntry(entry) {
-  const history = loadDeskHistory();
-  const idx = history.findIndex(h => h.date === entry.date);
-  if (idx >= 0) history[idx] = entry; else history.push(entry);
-  history.sort((a, b) => a.date.localeCompare(b.date));
-  saveDeskHistory(history);
+
+async function saveDeskEntry(entry) {
+  try {
+    const r = await fetch(WORKER_URL + 'save-history', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(entry)
+    });
+    _deskHistoryCache = null; // invalider le cache pour forcer un re-fetch
+    return await r.json();
+  } catch(e) {
+    console.error('Erreur sauvegarde historique KV:', e);
+    toast('⚠ Erreur de sauvegarde de la mémoire');
+  }
 }
-function clearDeskHistory() {
-  if (confirm('Effacer toute la mémoire du desk ?')) {
-    localStorage.removeItem(DESK_HIST_KEY);
+
+async function clearDeskHistory() {
+  if (confirm('Effacer toute la mémoire du desk ? Cette action est irréversible et efface tout l\'historique.')) {
+    try {
+      await fetch(WORKER_URL + 'clear-history', { method: 'POST' });
+    } catch(e) {}
+    _deskHistoryCache = [];
     toast('Mémoire du desk effacée');
     renderDeskHistory();
   }
 }
 
-function buildHistoricalContext() {
-  const history = loadDeskHistory();
+async function buildHistoricalContext() {
+  const history = await loadDeskHistory();
   if (!history.length) return '';
   const recent = history.slice(-8);
   let ctx = '\n\n=== HISTORIQUE DES ANALYSES PRÉCÉDENTES ===\n';
@@ -352,7 +371,7 @@ async function generateDeskComment(portfolio) {
   const mvPlus = positions.filter(p => p.pv_pct > 20).map(p => `${p.name} (+${p.pv_pct?.toFixed(1)}%)`).join(', ');
   const mvMoins = positions.filter(p => p.pv_pct < -20).map(p => `${p.name} (${p.pv_pct?.toFixed(1)}%)`).join(', ');
   const today = new Date().toLocaleDateString('fr-FR', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
-  const histCtx = buildHistoricalContext();
+  const histCtx = await buildHistoricalContext();
 
   const portfolioText = top15.map(p =>
     `${p.name} (${p.broker}): ${p.qty ? p.qty + ' titres' : ''} ${p.price ? '@ ' + p.price?.toFixed(2) : ''} = ${p.value_eur ? Math.round(p.value_eur).toLocaleString('fr-FR') + '€' : '?'} | PV/MV: ${p.pv_pct != null ? (p.pv_pct >= 0 ? '+' : '') + p.pv_pct?.toFixed(1) + '%' : '?'} | Semaine: ${p.week_chg != null && p.week_chg !== 0 ? (p.week_chg >= 0 ? '+' : '') + p.week_chg?.toFixed(1) + '%' : '—'}`
@@ -424,7 +443,7 @@ Génère le commentaire du desk complet pour cette semaine. Utilise ta connaissa
     renderDeskComment(desk);
 
     const today_iso = new Date().toISOString().slice(0,10);
-    saveDeskEntry({
+    await saveDeskEntry({
       date: today_iso,
       total_eur: portfolio.total_value_eur,
       resume: desk.resume,
@@ -437,7 +456,7 @@ Génère le commentaire du desk complet pour cette semaine. Utilise ta connaissa
       generated_at: new Date().toISOString()
     });
 
-    renderDeskHistory();
+    await renderDeskHistory();
     toast('✓ Commentaire du desk généré');
 
   } catch(e) {
@@ -488,10 +507,11 @@ function renderDeskComment(desk) {
   }
 }
 
-function renderDeskHistory() {
+async function renderDeskHistory() {
   const container = document.getElementById('desk-history-content');
   if (!container) return;
-  const history = loadDeskHistory();
+  container.innerHTML = `<div style="padding:20px;text-align:center;color:#888;font-size:13px"><span class="spinner"></span>Chargement de la mémoire...</div>`;
+  const history = await loadDeskHistory();
   if (!history.length) {
     container.innerHTML = `<div style="padding:30px;text-align:center;color:#888;font-size:13px">Aucune analyse sauvegardée.<br>Importez vos fichiers pour générer le premier commentaire.</div>`;
     return;
@@ -565,18 +585,16 @@ function showTab(id,btn) {
 
 async function loadData() {
   try {
-    const r = await fetch('latest_briefing.json?t='+Date.now());
-    if (!r.ok) throw new Error();
-    DATA = await r.json();
-    const live = sessionStorage.getItem('portfolio_live');
-    if (live) {
-      try {
-        const lp = JSON.parse(live);
-        if (lp.imported_at > (DATA.generated_at||'')) DATA.portfolio = lp;
-      } catch(e) {}
+    // Charger le dernier portefeuille depuis Cloudflare KV (accessible partout, sécurisé)
+    const r = await fetch(WORKER_URL + 'get-portfolio');
+    const stored = await r.json();
+    if (stored && stored.portfolio) {
+      DATA = stored;
+    } else {
+      throw new Error('Aucune donnée trouvée');
     }
     updateTopbar();
-    renderSamedi();
+    await renderSamedi();
     renderOpps();
     renderMacro();
     renderPtf();
@@ -598,7 +616,7 @@ function updateTopbar() {
     `Semaine ${DATA.week_number||'?'} · ${genAt}<br>${Math.round(p.total_value_eur||0).toLocaleString('fr-FR')}€ <span class="${pv>=0?'pos':'neg'}">${pv>=0?'+':''}${Math.round(pv).toLocaleString('fr-FR')}€</span>`;
 }
 
-function renderSamedi() {
+async function renderSamedi() {
   if (!DATA) return;
   const a=DATA.analysis||{}, p=DATA.portfolio||{};
   const tv=p.total_value_eur||0, pv=p.total_pv_eur||0, pvp=p.total_pv_pct||0;
@@ -660,7 +678,7 @@ function renderSamedi() {
 
   document.getElementById('samedi-content').innerHTML = html;
 
-  const deskHistory = loadDeskHistory();
+  const deskHistory = await loadDeskHistory();
   if (deskHistory.length) {
     const last = deskHistory[deskHistory.length - 1];
     renderDeskComment(last);
@@ -908,7 +926,17 @@ async function handleFiles(files) {
   }
   DATA.portfolio=portfolio;
   DATA.week_number=DATA.week_number||getWeekNum();
-  sessionStorage.setItem('portfolio_live',JSON.stringify(portfolio));
+
+  // Sauvegarder dans Cloudflare KV (sécurisé, accessible depuis n'importe quel appareil)
+  try {
+    await fetch(WORKER_URL + 'save-portfolio', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(DATA)
+    });
+  } catch(e) {
+    console.error('Erreur sauvegarde portefeuille KV:', e);
+  }
 
   fill.style.width='90%'; label.textContent='Génération commentaire du desk...';
 
@@ -918,7 +946,7 @@ async function handleFiles(files) {
     <span style="font-weight:400;font-size:12px;color:#888">${withChg} variations calculées${withChg===0?' (premier import)':''}</span>
   </div>`;
 
-  updateTopbar(); renderSamedi(); renderOpps(); renderMacro(); renderPtf();
+  updateTopbar(); await renderSamedi(); renderOpps(); renderMacro(); renderPtf();
 
   fill.style.width='100%';
   setTimeout(() => { prog.style.display='none'; }, 500);
