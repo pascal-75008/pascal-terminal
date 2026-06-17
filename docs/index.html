@@ -394,6 +394,12 @@ Tu dois IMPÉRATIVEMENT répondre en JSON valide avec cette structure exacte :
   "suivi_preco": "Évaluation de tes préconisations des semaines passées : ont-elles été bonnes ? Lesquelles ont été validées ou invalidées par le marché ? Que corriges-tu ?"
 }
 
+CONTRAINTES STRICTES DE LONGUEUR (impératif pour éviter toute troncature) :
+- Maximum 5 alertes, chaque "detail" limité à 280 caractères maximum
+- Chaque élément de recos_ct, recos_mt, recos_lt limité à 150 caractères maximum
+- "resume" maximum 400 caractères, "contexte_macro" maximum 600 caractères, "suivi_preco" maximum 400 caractères
+- Sois dense et percutant plutôt qu'exhaustif — la concision est une exigence absolue, pas une option
+
 Ne réponds QUE avec le JSON brut. Ne mets JAMAIS de balises markdown comme \`\`\`json ou \`\`\`. Ne mets AUCUN texte avant ou après le JSON. Ta réponse doit commencer directement par { et finir directement par }.${histCtx}`;
 
   const userPrompt = `Nous sommes le ${today}.
@@ -416,7 +422,7 @@ Génère le commentaire du desk complet pour cette semaine. Utilise ta connaissa
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: CLAUDE_MODEL,
-        max_tokens: 4000,
+        max_tokens: 6000,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }]
       })
