@@ -375,7 +375,7 @@ Tu dois IMPÉRATIVEMENT répondre en JSON valide avec cette structure exacte :
   "suivi_preco": "Évaluation de tes préconisations des semaines passées : ont-elles été bonnes ? Lesquelles ont été validées ou invalidées par le marché ? Que corriges-tu ?"
 }
 
-Ne réponds QUE avec le JSON, sans markdown, sans texte avant ou après.${histCtx}`;
+Ne réponds QUE avec le JSON brut. Ne mets JAMAIS de balises markdown comme \`\`\`json ou \`\`\`. Ne mets AUCUN texte avant ou après le JSON. Ta réponse doit commencer directement par { et finir directement par }.${histCtx}`;
 
   const userPrompt = `Nous sommes le ${today}.
 
@@ -409,10 +409,16 @@ Génère le commentaire du desk complet pour cette semaine. Utilise ta connaissa
 
     let desk;
     try {
-      const clean = rawText.replace(/```json|```/g, '').trim();
+      let clean = rawText.replace(/```json|```/g, '').trim();
+      const firstBrace = clean.indexOf('{');
+      const lastBrace = clean.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        clean = clean.slice(firstBrace, lastBrace + 1);
+      }
       desk = JSON.parse(clean);
     } catch(e) {
-      throw new Error('Réponse invalide du modèle');
+      console.error('Parsing JSON échoué. Texte brut reçu:', rawText);
+      throw new Error('Réponse invalide du modèle (voir console pour le détail)');
     }
 
     renderDeskComment(desk);
