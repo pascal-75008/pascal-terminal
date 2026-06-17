@@ -14,7 +14,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   .comment-box{background:#0a0a0a}
   .upload-z{border-color:rgba(255,255,255,0.15)}
   .upload-z:hover,.upload-z.drag{background:#1a2e1a;border-color:#3B6D11}
-  .flt{color:#888;border-color:rgba(255,255,255,0.15)}
+  .flt{color:#888;border-color:rgba(255,255,255a,0.15)}
   td{border-color:rgba(255,255,255,0.05)}
   th{border-color:rgba(255,255,255,0.1);color:#888}
   tr:hover td{background:rgba(255,255,255,0.03)}
@@ -397,7 +397,7 @@ Génère le commentaire du desk complet pour cette semaine. Utilise ta connaissa
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: CLAUDE_MODEL,
-        max_tokens: 1500,
+        max_tokens: 4000,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }]
       })
