@@ -26,7 +26,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   .alert-warning{background:#1a130a!important}
   .alert-info{background:#0a111a!important}
   .reco-card{background:#1c1c1e!important;border-color:rgba(255,255,255,0.07)!important}
-  .hist-card{background:#1c1c1e!important;border-color:rgba(255,255,255,0.07)!important}
 }
 .topbar{background:#111;padding:11px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 .logo{color:#fff;font-size:15px;font-weight:500;display:flex;align-items:center;gap:8px}
@@ -111,7 +110,6 @@ tr:hover td{background:rgba(0,0,0,.02)}
 .hist-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
 .hist-controls select{padding:6px 10px;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;font-size:13px;background:#fff;color:#1a1a1a}
 .hist-controls label{font-size:12px;color:#888}
-/* ── DESK ─────────────────────────────────────────────────────────────────── */
 .desk-card{background:#fff;border:0.5px solid rgba(0,0,0,0.08);border-radius:12px;padding:20px 22px;margin-bottom:14px}
 .desk-header{border-bottom:0.5px solid rgba(0,0,0,0.07);padding-bottom:14px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px}
 .desk-title{font-size:18px;font-weight:500}
@@ -148,10 +146,6 @@ tr:hover td{background:rgba(0,0,0,.02)}
 .hist-desk-date{font-size:11px;color:#888;margin-bottom:4px}
 .hist-desk-preview{font-size:13px;color:#555;line-height:1.6}
 .hist-desk-recos{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-.tracking-pill{font-size:11px;padding:2px 8px;border-radius:20px;display:inline-flex;align-items:center;gap:4px}
-.tracking-ok{background:#EAF3DE;color:#3B6D11}
-.tracking-ko{background:#FCEBEB;color:#A32D2D}
-.tracking-pending{background:#F1EFE8;color:#888}
 </style>
 </head>
 <body>
@@ -236,7 +230,6 @@ tr:hover td{background:rgba(0,0,0,.02)}
   <div id="hist-content"></div>
 </div>
 
-<!-- ── MÉMOIRE DU DESK ──────────────────────────────────────────────────── -->
 <div id="desk-history" class="section">
   <div class="desk-card">
     <div class="desk-header">
@@ -268,7 +261,6 @@ tr:hover td{background:rgba(0,0,0,.02)}
     <div id="upload-progress" style="display:none;padding:10px 0">
       <div style="font-size:12px;color:#888;margin-bottom:4px" id="progress-label">Traitement...</div>
       <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
-      <div style="font-size:11px;color:#888;margin-top:3px" id="progress-detail"></div>
     </div>
   </div>
   <div class="g3">
@@ -285,10 +277,11 @@ tr:hover td{background:rgba(0,0,0,.02)}
 <script>
 // ── CONFIG ────────────────────────────────────────────────────────────────────
 const CLAUDE_MODEL = 'claude-sonnet-4-6';
+// URL de ton Cloudflare Worker — proxy sécurisé vers l'API Anthropic
+const WORKER_URL = 'https://curly-rain-abaa.pascaladgeorges.workers.dev/';
 const DESK_HIST_KEY = 'pascal_desk_history_v2';
 const HIST_KEY = 'pascal_terminal_history';
 
-// ── AUTH ──────────────────────────────────────────────────────────────────────
 function checkPwd() {
   const v = document.getElementById('pwd-input').value;
   if (v === 'Jeantet2026!') {
@@ -302,48 +295,35 @@ function checkPwd() {
 }
 if (sessionStorage.getItem('pt_ok') === '1') document.getElementById('pwd-screen').style.display = 'none';
 
-// ── STATE ─────────────────────────────────────────────────────────────────────
 let DATA = null;
 let sortCol = 'value_eur', sortDir = -1, brokerFilter = 'all';
 
-// ── MÉMOIRE DU DESK ───────────────────────────────────────────────────────────
-function loadDeskHistory() {
-  try { return JSON.parse(localStorage.getItem(DESK_HIST_KEY) || '[]'); } catch(e) { return []; }
-}
-
+function loadDeskHistory() { try { return JSON.parse(localStorage.getItem(DESK_HIST_KEY) || '[]'); } catch(e) { return []; } }
 function saveDeskHistory(arr) {
-  // Garder max 52 entrées (1 an de mémoire)
   if (arr.length > 52) arr = arr.slice(arr.length - 52);
   try { localStorage.setItem(DESK_HIST_KEY, JSON.stringify(arr)); } catch(e) {
-    // Si storage plein, supprimer les plus vieilles
     arr = arr.slice(-20);
     try { localStorage.setItem(DESK_HIST_KEY, JSON.stringify(arr)); } catch(e2) {}
   }
 }
-
 function saveDeskEntry(entry) {
   const history = loadDeskHistory();
-  // Éviter les doublons pour la même date
   const idx = history.findIndex(h => h.date === entry.date);
-  if (idx >= 0) history[idx] = entry;
-  else history.push(entry);
+  if (idx >= 0) history[idx] = entry; else history.push(entry);
   history.sort((a, b) => a.date.localeCompare(b.date));
   saveDeskHistory(history);
 }
-
 function clearDeskHistory() {
-  if (confirm('Effacer toute la mémoire du desk ? Cette action est irréversible.')) {
+  if (confirm('Effacer toute la mémoire du desk ?')) {
     localStorage.removeItem(DESK_HIST_KEY);
     toast('Mémoire du desk effacée');
     renderDeskHistory();
   }
 }
 
-// Construit le contexte historique à envoyer à Claude
 function buildHistoricalContext() {
   const history = loadDeskHistory();
   if (!history.length) return '';
-  // On envoie les 8 dernières semaines max pour rester dans les limites
   const recent = history.slice(-8);
   let ctx = '\n\n=== HISTORIQUE DES ANALYSES PRÉCÉDENTES ===\n';
   ctx += '(Tu dois tenir compte de ces analyses passées pour évaluer tes préconisations antérieures et ajuster tes recommandations)\n\n';
@@ -360,28 +340,25 @@ function buildHistoricalContext() {
   return ctx;
 }
 
-// ── GÉNÉRATION COMMENTAIRE DESK VIA CLAUDE API ────────────────────────────────
 async function generateDeskComment(portfolio) {
   const deskBox = document.getElementById('desk-comment-box');
   const recoBox = document.getElementById('desk-reco-box');
   if (!deskBox) return;
 
-  // Afficher le spinner de streaming
   deskBox.innerHTML = `<div class="desk-streaming"><span class="spinner"></span>Le desk analyse votre portefeuille...<span class="cursor"></span></div>`;
 
-  // Construire le prompt avec données réelles + historique
   const positions = portfolio.positions || [];
-  const top10 = [...positions].sort((a,b) => (b.value_eur||0)-(a.value_eur||0)).slice(0,15);
+  const top15 = [...positions].sort((a,b) => (b.value_eur||0)-(a.value_eur||0)).slice(0,15);
   const mvPlus = positions.filter(p => p.pv_pct > 20).map(p => `${p.name} (+${p.pv_pct?.toFixed(1)}%)`).join(', ');
   const mvMoins = positions.filter(p => p.pv_pct < -20).map(p => `${p.name} (${p.pv_pct?.toFixed(1)}%)`).join(', ');
   const today = new Date().toLocaleDateString('fr-FR', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
   const histCtx = buildHistoricalContext();
 
-  const portfolioText = top10.map(p =>
+  const portfolioText = top15.map(p =>
     `${p.name} (${p.broker}): ${p.qty ? p.qty + ' titres' : ''} ${p.price ? '@ ' + p.price?.toFixed(2) : ''} = ${p.value_eur ? Math.round(p.value_eur).toLocaleString('fr-FR') + '€' : '?'} | PV/MV: ${p.pv_pct != null ? (p.pv_pct >= 0 ? '+' : '') + p.pv_pct?.toFixed(1) + '%' : '?'} | Semaine: ${p.week_chg != null && p.week_chg !== 0 ? (p.week_chg >= 0 ? '+' : '') + p.week_chg?.toFixed(1) + '%' : '—'}`
   ).join('\n');
 
-  const systemPrompt = `Tu es le desk d'analyse de Pascal Terminal, le broker IA personnel de Pascal Georges, investisseur parisien privé. Tu combines la rigueur d'un analyste sell-side senior, la vision macro d'un gérant de fonds global, et la connaissance intime du portefeuille de Pascal.
+  const systemPrompt = `Tu es le desk d'analyse de Pascal Terminal, le broker IA personnel de Pascal, investisseur parisien privé. Tu combines la rigueur d'un analyste sell-side senior, la vision macro d'un gérant de fonds global, et la connaissance intime du portefeuille de Pascal.
 
 Ton rôle : chaque samedi, après l'import du portefeuille, tu génères un commentaire du desk complet, structuré, actionnable. Tu parles directement à Pascal à la deuxième personne. Tu es direct, précis, sans langue de bois.
 
@@ -411,37 +388,35 @@ Courtiers : ${portfolio.brokers?.join(', ')}
 ${mvPlus ? '\nPositions en forte plus-value (>+20%) : ' + mvPlus : ''}
 ${mvMoins ? '\nPositions en forte moins-value (< -20%) : ' + mvMoins : ''}
 
-Génère le commentaire du desk complet pour cette semaine. Utilise ta connaissance de l'actualité financière et géopolitique de cette semaine (contexte Iran, Fed, technologie, marchés) pour personnaliser l'analyse.`;
+Génère le commentaire du desk complet pour cette semaine. Utilise ta connaissance de l'actualité financière et géopolitique de cette semaine pour personnaliser l'analyse.`;
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    // ── Appel via le Cloudflare Worker (proxy sécurisé) au lieu d'Anthropic direct ──
+    const resp = await fetch(WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: CLAUDE_MODEL,
-        max_tokens: 1000,
+        max_tokens: 1500,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }]
       })
     });
 
-    if (!resp.ok) throw new Error(`API error ${resp.status}`);
+    if (!resp.ok) throw new Error(`Erreur serveur ${resp.status}`);
     const data = await resp.json();
     const rawText = data.content?.find(b => b.type === 'text')?.text || '';
 
-    // Parser le JSON retourné
     let desk;
     try {
       const clean = rawText.replace(/```json|```/g, '').trim();
       desk = JSON.parse(clean);
     } catch(e) {
-      throw new Error('JSON invalide retourné par le modèle');
+      throw new Error('Réponse invalide du modèle');
     }
 
-    // Afficher le commentaire
     renderDeskComment(desk);
 
-    // Sauvegarder en mémoire
     const today_iso = new Date().toISOString().slice(0,10);
     saveDeskEntry({
       date: today_iso,
@@ -456,14 +431,13 @@ Génère le commentaire du desk complet pour cette semaine. Utilise ta connaissa
       generated_at: new Date().toISOString()
     });
 
-    // Mettre à jour l'onglet mémoire si ouvert
     renderDeskHistory();
     toast('✓ Commentaire du desk généré');
 
   } catch(e) {
     deskBox.innerHTML = `<div style="color:#A32D2D;font-size:13px;padding:10px">
       ⚠ Erreur lors de la génération : ${e.message}<br>
-      <span style="font-size:12px;color:#888">Vérifiez votre connexion et réessayez.</span>
+      <span style="font-size:12px;color:#888">Vérifiez la configuration du Worker et réessayez.</span>
     </div>`;
     console.error('Desk generation error:', e);
   }
@@ -475,12 +449,10 @@ function renderDeskComment(desk) {
   const suiviBox = document.getElementById('desk-suivi-box');
   if (!deskBox) return;
 
-  // Commentaire macro
   let html = `<div style="font-size:13px;color:#555;line-height:1.8;margin-bottom:12px"><strong style="color:#1a1a1a">${desk.resume || ''}</strong></div>`;
   if (desk.contexte_macro) html += `<div style="font-size:13px;color:#666;line-height:1.8">${desk.contexte_macro}</div>`;
   deskBox.innerHTML = html;
 
-  // Alertes
   if (desk.alertes && desk.alertes.length && recoBox) {
     const iconMap = {danger:'⚠', success:'✓', warning:'⚡', info:'ℹ'};
     let alertHtml = '';
@@ -490,7 +462,6 @@ function renderDeskComment(desk) {
         <div><strong>${a.titre || ''}</strong><br><span style="color:#666">${a.detail || ''}</span></div>
       </div>`;
     }
-    // Préconisations
     const mkReco = (items, cls, label) => {
       if (!items || !items.length) return '';
       return `<div class="reco-card">
@@ -505,14 +476,12 @@ function renderDeskComment(desk) {
     </div>`;
   }
 
-  // Suivi préconisations
   if (desk.suivi_preco && suiviBox) {
     suiviBox.innerHTML = `<div style="font-size:13px;color:#666;line-height:1.8;font-style:italic">${desk.suivi_preco}</div>`;
     document.getElementById('desk-suivi-section').style.display = 'block';
   }
 }
 
-// ── RENDER MÉMOIRE DU DESK ────────────────────────────────────────────────────
 function renderDeskHistory() {
   const container = document.getElementById('desk-history-content');
   if (!container) return;
@@ -521,7 +490,6 @@ function renderDeskHistory() {
     container.innerHTML = `<div style="padding:30px;text-align:center;color:#888;font-size:13px">Aucune analyse sauvegardée.<br>Importez vos fichiers pour générer le premier commentaire.</div>`;
     return;
   }
-  // Afficher du plus récent au plus ancien
   const sorted = [...history].reverse();
   let html = '';
   for (const h of sorted) {
@@ -537,15 +505,8 @@ function renderDeskHistory() {
   container.innerHTML = html;
 }
 
-// ── HISTORIQUE PORTEFEUILLE ───────────────────────────────────────────────────
-function loadHistory() {
-  try { return JSON.parse(localStorage.getItem(HIST_KEY) || '{}'); } catch(e) { return {}; }
-}
-function saveHistory(h) {
-  try { localStorage.setItem(HIST_KEY, JSON.stringify(h)); } catch(e) {
-    toast('⚠ Historique plein — effacez les anciennes données');
-  }
-}
+function loadHistory() { try { return JSON.parse(localStorage.getItem(HIST_KEY) || '{}'); } catch(e) { return {}; } }
+function saveHistory(h) { try { localStorage.setItem(HIST_KEY, JSON.stringify(h)); } catch(e) { toast('⚠ Historique plein'); } }
 function saveSnapshot(date, positions) {
   const h = loadHistory();
   const snap = {};
@@ -557,7 +518,6 @@ function saveSnapshot(date, positions) {
   const dates = Object.keys(h).sort();
   if (dates.length > 52) delete h[dates[0]];
   saveHistory(h);
-  return h;
 }
 function getWeekChg(positions) {
   const h = loadHistory();
@@ -581,7 +541,6 @@ function clearHistory() {
   }
 }
 
-// ── HELPERS ───────────────────────────────────────────────────────────────────
 const fN = (v,d=1) => v==null?'—':Number(v).toLocaleString('fr-FR',{maximumFractionDigits:d,minimumFractionDigits:d});
 const fE = v => { if(v==null)return'—'; const s=v>=0?'+':''; const c=v>=0?'pos':'neg'; return `<span class="${c}">${s}${Math.round(v).toLocaleString('fr-FR')}€</span>`; };
 const fP = v => { if(v==null)return'—'; const s=v>=0?'+':''; const c=v>=0?'pos':'neg'; return `<span class="${c}">${s}${fN(v)}%</span>`; };
@@ -598,7 +557,6 @@ function showTab(id,btn) {
   if(id==='desk-history') renderDeskHistory();
 }
 
-// ── LOAD DATA ─────────────────────────────────────────────────────────────────
 async function loadData() {
   try {
     const r = await fetch('latest_briefing.json?t='+Date.now());
@@ -620,7 +578,7 @@ async function loadData() {
     document.getElementById('samedi-content').innerHTML =
       `<div style="padding:60px;text-align:center;color:#888">
         Aucun briefing disponible.<br>
-        <span style="font-size:12px">Importez vos fichiers dans l'onglet "Importer"<br>ou attendez le briefing automatique du samedi matin.</span>
+        <span style="font-size:12px">Importez vos fichiers dans l'onglet "Importer".</span>
       </div>`;
   }
 }
@@ -634,7 +592,6 @@ function updateTopbar() {
     `Semaine ${DATA.week_number||'?'} · ${genAt}<br>${Math.round(p.total_value_eur||0).toLocaleString('fr-FR')}€ <span class="${pv>=0?'pos':'neg'}">${pv>=0?'+':''}${Math.round(pv).toLocaleString('fr-FR')}€</span>`;
 }
 
-// ── RENDER SAMEDI ─────────────────────────────────────────────────────────────
 function renderSamedi() {
   if (!DATA) return;
   const a=DATA.analysis||{}, p=DATA.portfolio||{};
@@ -648,7 +605,6 @@ function renderSamedi() {
     <div class="kpi"><div class="lbl">Marché</div><div class="val" style="display:flex;gap:4px;flex-wrap:wrap;font-size:13px;padding-top:4px">${badge(a.orientation_marche||'?',orMap[a.orientation_marche]||'bg-gray')} ${badge(a.niveau_risque||'?',rlMap[a.niveau_risque]||'bg-amber')}</div></div>
   </div>`;
 
-  // ── COMMENTAIRE DU DESK (zone principale) ─────────────────────────────────
   html += `<div class="desk-card">
     <div class="desk-header">
       <div>
@@ -667,7 +623,6 @@ function renderSamedi() {
     </div>
   </div>`;
 
-  // Actions prioritaires
   const actions=a.actions_samedi_matin||[];
   if(actions.length){
     html+=`<div class="card"><div class="card-hd">Actions prioritaires ce samedi</div>`;
@@ -699,7 +654,6 @@ function renderSamedi() {
 
   document.getElementById('samedi-content').innerHTML = html;
 
-  // Charger le dernier desk depuis la mémoire si disponible
   const deskHistory = loadDeskHistory();
   if (deskHistory.length) {
     const last = deskHistory[deskHistory.length - 1];
@@ -715,15 +669,14 @@ function regenerateDesk() {
   generateDeskComment(DATA.portfolio);
 }
 
-// ── RENDER OPPS / MACRO / PTF (inchangés) ────────────────────────────────────
 function renderOpps() {
   if (!DATA) return;
   const a=DATA.analysis||{}, ct=a.top_screener_ct||[], lt=a.top_screener_lt||[], sec=a.secteurs||{};
   let html=`<div class="g2"><div><div class="card-hd" style="margin-bottom:8px">Court terme — jours / semaines</div>`;
-  ct.forEach(o=>{html+=`<div class="opp-card"><div><div class="opp-name">${o.nom||''} ${o.theme?badge(o.theme,'bg-blue'):''}</div><div class="opp-meta">${o.ticker||''} · ${brokerBadge(o.courtier||'DeGiro')} ${o.momentum_score?`· Score ${o.momentum_score}/100`:''}</div><div class="opp-rat">${o.rationale||''}</div></div><div class="opp-right"><div class="opp-price">${o.prix||'—'}</div>${o.cible_ct?`<div class="opp-cible">→ ${o.cible_ct}</div>`:''}</div></div>`;});
+  ct.forEach(o=>{html+=`<div class="opp-card"><div><div class="opp-name">${o.nom||''} ${o.theme?badge(o.theme,'bg-blue'):''}</div><div class="opp-meta">${o.ticker||''} · ${brokerBadge(o.courtier||'')} ${o.momentum_score?`· Score ${o.momentum_score}/100`:''}</div><div class="opp-rat">${o.rationale||''}</div></div><div class="opp-right"><div class="opp-price">${o.prix||'—'}</div>${o.cible_ct?`<div class="opp-cible">→ ${o.cible_ct}</div>`:''}</div></div>`;});
   if(!ct.length) html+=`<div class="card-inner" style="color:#888;font-size:13px">Aucune opportunité CT cette semaine.</div>`;
-  html+=`</div><div><div class="card-hd" style="margin-bottom:8px">Long terme — conviction retraite 5-7 ans</div>`;
-  lt.forEach(o=>{html+=`<div class="opp-card" style="border-left:3px solid #065040"><div><div class="opp-name">${o.nom||''} ${o.theme?badge(o.theme,'bg-teal'):''}</div><div class="opp-meta">${o.ticker||''} · ${brokerBadge(o.courtier||'DeGiro')}${o.vehicule_linxea?` · ${badge('Linxea: '+o.vehicule_linxea,'bg-amber')}`:''}</div><div class="opp-rat"><em>"${o.these_retraite||''}"</em></div></div><div class="opp-right">${o.montant_suggere?`<div style="font-weight:500;color:#065040">${Math.round(o.montant_suggere).toLocaleString('fr-FR')}€</div><div style="font-size:11px;color:#888">suggérés</div>`:''}</div></div>`;});
+  html+=`</div><div><div class="card-hd" style="margin-bottom:8px">Long terme — conviction retraite</div>`;
+  lt.forEach(o=>{html+=`<div class="opp-card" style="border-left:3px solid #065040"><div><div class="opp-name">${o.nom||''} ${o.theme?badge(o.theme,'bg-teal'):''}</div><div class="opp-meta">${o.ticker||''} · ${brokerBadge(o.courtier||'')}${o.vehicule_linxea?` · ${badge('Linxea: '+o.vehicule_linxea,'bg-amber')}`:''}</div><div class="opp-rat"><em>"${o.these_retraite||''}"</em></div></div><div class="opp-right">${o.montant_suggere?`<div style="font-weight:500;color:#065040">${Math.round(o.montant_suggere).toLocaleString('fr-FR')}€</div><div style="font-size:11px;color:#888">suggérés</div>`:''}</div></div>`;});
   if(!lt.length) html+=`<div class="card-inner" style="color:#888;font-size:13px">Aucune conviction LT.</div>`;
   html+=`</div></div>`;
   if((sec.surponderer||[]).length||(sec.alleger||[]).length){
@@ -768,7 +721,6 @@ function renderMacro() {
   document.getElementById('macro-content').innerHTML=html;
 }
 
-// ── RENDER HISTORIQUE ─────────────────────────────────────────────────────────
 let histSortCol = 'vchg', histSortDir = -1;
 function renderHistorique() {
   const h = loadHistory();
@@ -779,7 +731,7 @@ function renderHistorique() {
   sel1.innerHTML = dates.map(d=>`<option value="${d}" ${d===cur1?'selected':''}>${d}</option>`).join('');
   sel2.innerHTML = dates.map(d=>`<option value="${d}" ${d===cur2?'selected':''}>${d}</option>`).join('');
   if (!dates.length) {
-    document.getElementById('hist-content').innerHTML = `<div class="card-inner" style="color:#888;text-align:center;padding:30px">Aucun historique — importez vos fichiers pour commencer à construire l'historique.</div>`;
+    document.getElementById('hist-content').innerHTML = `<div class="card-inner" style="color:#888;text-align:center;padding:30px">Aucun historique.</div>`;
     document.getElementById('hist-summary').innerHTML = '';
     return;
   }
@@ -790,7 +742,7 @@ function renderHistorique() {
   const snap2 = h[d2]?.snap || {};
   const tv1=h[d1]?.total_eur||0, tv2=h[d2]?.total_eur||0;
   const tvDiff=tv2-tv1, pvDiff=(h[d2]?.total_pv||0)-(h[d1]?.total_pv||0);
-  document.getElementById('hist-summary').innerHTML=`<div class="g4" style="margin:0"><div class="kpi"><div class="lbl">Valeur ${d1}</div><div class="val">${Math.round(tv1).toLocaleString('fr-FR')}€</div></div><div class="kpi"><div class="lbl">Valeur ${d2}</div><div class="val">${Math.round(tv2).toLocaleString('fr-FR')}€</div></div><div class="kpi"><div class="lbl">Évolution valeur</div><div class="val ${tvDiff>=0?'pos':'neg'}">${tvDiff>=0?'+':''}${Math.round(tvDiff).toLocaleString('fr-FR')}€</div><div class="sub ${tvDiff>=0?'pos':'neg'}">${tv1?((tvDiff/tv1*100).toFixed(1)+'%'):''}</div></div><div class="kpi"><div class="lbl">Évolution PV/MV</div><div class="val ${pvDiff>=0?'pos':'neg'}">${pvDiff>=0?'+':''}${Math.round(pvDiff).toLocaleString('fr-FR')}€</div></div></div>`;
+  document.getElementById('hist-summary').innerHTML=`<div class="g4" style="margin:0"><div class="kpi"><div class="lbl">Valeur ${d1}</div><div class="val">${Math.round(tv1).toLocaleString('fr-FR')}€</div></div><div class="kpi"><div class="lbl">Valeur ${d2}</div><div class="val">${Math.round(tv2).toLocaleString('fr-FR')}€</div></div><div class="kpi"><div class="lbl">Évolution</div><div class="val ${tvDiff>=0?'pos':'neg'}">${tvDiff>=0?'+':''}${Math.round(tvDiff).toLocaleString('fr-FR')}€</div><div class="sub ${tvDiff>=0?'pos':'neg'}">${tv1?((tvDiff/tv1*100).toFixed(1)+'%'):''}</div></div><div class="kpi"><div class="lbl">Évol. PV/MV</div><div class="val ${pvDiff>=0?'pos':'neg'}">${pvDiff>=0?'+':''}${Math.round(pvDiff).toLocaleString('fr-FR')}€</div></div></div>`;
   const allKeys = new Set([...Object.keys(snap1),...Object.keys(snap2)]);
   const rows = [];
   for (const key of allKeys) {
@@ -803,15 +755,14 @@ function renderHistorique() {
   }
   rows.sort((a,b)=>{let va=a[histSortCol],vb=b[histSortCol];if(va==null)va=histSortDir>0?1e12:-1e12;if(vb==null)vb=histSortDir>0?1e12:-1e12;return typeof va==='string'?histSortDir*va.localeCompare(vb):histSortDir*(va-vb);});
   const arr=col=>col===histSortCol?(histSortDir>0?'↑':'↓'):'';
-  const thH=(col,label,align='right')=>`<th style="text-align:${align};cursor:pointer" onclick="sortHist('${col}')">${label} ${arr(col)}</th>`;
-  let html=`<div class="card" style="padding:0;overflow:hidden"><div class="tscroll"><table><thead><tr>${thH('name','Valeur','left')}${thH('p1',`Cours ${d1}`)}${thH('p2',`Cours ${d2}`)}${thH('chg','Évol. %')}${thH('v1',`Valeur ${d1}`)}${thH('v2',`Valeur ${d2}`)}${thH('vdiff','Évol. €')}${thH('vchg','Évol. %')}</tr></thead><tbody>`;
+  const thH=(col,lbl,align='right')=>`<th style="text-align:${align};cursor:pointer" onclick="sortHist('${col}')">${lbl} ${arr(col)}</th>`;
+  let html=`<div class="card" style="padding:0;overflow:hidden"><div class="tscroll"><table><thead><tr>${thH('name','Valeur','left')}${thH('p1','Cours '+d1)}${thH('p2','Cours '+d2)}${thH('chg','Évol. %')}${thH('v1','Val. '+d1)}${thH('v2','Val. '+d2)}${thH('vdiff','Évol. €')}${thH('vchg','Évol. %')}</tr></thead><tbody>`;
   rows.forEach(r=>{html+=`<tr><td style="font-size:12px;font-weight:500">${r.name}</td><td style="text-align:right;color:#888">${r.p1?fN(r.p1,2):'—'}</td><td style="text-align:right;font-weight:500">${r.p2?fN(r.p2,2):'—'}</td><td style="text-align:right">${r.chg!=null?fP(r.chg):'—'}</td><td style="text-align:right;color:#888">${r.v1?Math.round(r.v1).toLocaleString('fr-FR')+'€':'—'}</td><td style="text-align:right;font-weight:500">${r.v2?Math.round(r.v2).toLocaleString('fr-FR')+'€':'—'}</td><td style="text-align:right">${r.vdiff?fE(r.vdiff):'—'}</td><td style="text-align:right">${r.vchg!=null?fP(r.vchg):'—'}</td></tr>`;});
   html+=`</tbody></table></div></div>`;
   document.getElementById('hist-content').innerHTML=html;
 }
 function sortHist(col){if(histSortCol===col)histSortDir*=-1;else{histSortCol=col;histSortDir=-1;}renderHistorique();}
 
-// ── FILE PARSING ──────────────────────────────────────────────────────────────
 function parseNum(s) {
   if(s==null)return null;
   s=String(s).trim().replace(/"/g,'').replace(/\xa0/g,'').replace(/ /g,'');
@@ -885,7 +836,6 @@ const LINXEA_STATIC = [
   {broker:'linxea',name:'Amundi Nasdaq-100 Swap',isin:'LU1829221024',qty:null,pru:null,price:null,currency:'EUR',value_eur:1718.61,pv_eur:219.84,pv_pct:14.7,week_chg:3.1},
 ];
 
-// ── HANDLE FILES ──────────────────────────────────────────────────────────────
 async function handleFiles(files) {
   const status=document.getElementById('upload-status');
   const prog=document.getElementById('upload-progress');
@@ -921,7 +871,6 @@ async function handleFiles(files) {
 
   if(!hasLinxea) allPositions=allPositions.concat(LINXEA_STATIC);
 
-  // Dédupliquer
   const seen=new Set();
   allPositions=allPositions.filter(p=>{const k=`${p.broker}|${p.name}`;if(seen.has(k))return false;seen.add(k);return true;});
 
@@ -968,26 +917,22 @@ async function handleFiles(files) {
   fill.style.width='100%';
   setTimeout(() => { prog.style.display='none'; }, 500);
 
-  // ── Basculer sur l'onglet Plan du samedi et lancer le desk ──────────────
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.querySelector('.nav-btn').classList.add('active');
   document.getElementById('samedi').classList.add('active');
 
-  // Générer le commentaire du desk automatiquement
   await generateDeskComment(portfolio);
   toast(`✓ Import + commentaire du desk générés`);
 }
 
 function getWeekNum(){const d=new Date(),j=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));j.setUTCDate(j.getUTCDate()+4-(j.getUTCDay()||7));const y=new Date(Date.UTC(j.getUTCFullYear(),0,1));return Math.ceil((((j-y)/86400000)+1)/7);}
 
-// ── DRAG & DROP ───────────────────────────────────────────────────────────────
 const dz=document.getElementById('dropzone');
 dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag')});
 dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
 dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag');handleFiles(e.dataTransfer.files)});
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
 async function init() { await loadData(); }
 if(sessionStorage.getItem('pt_ok')==='1') init();
 </script>
