@@ -146,6 +146,18 @@ tr:hover td{background:rgba(0,0,0,.02)}
 .hist-desk-date{font-size:11px;color:#888;margin-bottom:4px}
 .hist-desk-preview{font-size:13px;color:#555;line-height:1.6}
 .hist-desk-recos{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+/* Cessions réalisées */
+.cession-badge-pea{background:#E1F5EE;color:#065040;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:500}
+.cession-badge-cto{background:#E6F1FB;color:#185FA5;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:500}
+.cession-totaux{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+@media(max-width:700px){.cession-totaux{grid-template-columns:repeat(2,1fr)}}
+.cession-form{background:#f8f8f5;border:0.5px solid rgba(0,0,0,0.08);border-radius:10px;padding:14px;margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.cession-form input,.cession-form select{padding:6px 10px;border:0.5px solid rgba(0,0,0,0.15);border-radius:6px;font-size:13px;background:#fff;color:#1a1a1a;min-width:110px}
+.cession-form label{font-size:11px;color:#888;display:block;margin-bottom:3px}
+.btn-primary{padding:8px 16px;background:#1a1a1a;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;transition:opacity .15s}
+.btn-primary:hover{opacity:.8}
+.btn-danger{padding:3px 9px;background:transparent;color:#A32D2D;border:0.5px solid #A32D2D;border-radius:5px;font-size:11px;cursor:pointer}
+@media(prefers-color-scheme:dark){.cession-form input,.cession-form select{background:#1c1c1e;color:#f0f0f0;border-color:#333}.cession-form{background:#1c1c1e}}
 </style>
 </head>
 <body>
@@ -169,6 +181,7 @@ tr:hover td{background:rgba(0,0,0,.02)}
   <button class="nav-btn" onclick="showTab('macro',this)">Macro</button>
   <button class="nav-btn" onclick="showTab('historique',this)">Historique</button>
   <button class="nav-btn" onclick="showTab('desk-history',this)">Mémoire du desk</button>
+  <button class="nav-btn" onclick="showTab('cessions',this)">Cessions réalisées</button>
   <button class="nav-btn" onclick="showTab('import',this)">Importer</button>
 </div>
 
@@ -240,6 +253,49 @@ tr:hover td{background:rgba(0,0,0,.02)}
       <button class="btn-regen" onclick="clearDeskHistory()" style="color:#A32D2D;border-color:#A32D2D">🗑 Effacer mémoire</button>
     </div>
     <div id="desk-history-content"><div style="padding:30px;text-align:center;color:#888;font-size:13px">Aucune analyse sauvegardée.<br>Importez vos fichiers pour générer le premier commentaire.</div></div>
+  </div>
+</div>
+
+<div id="cessions" class="section">
+  <div id="cessions-totaux" class="cession-totaux"></div>
+
+  <!-- Formulaire saisie manuelle -->
+  <div class="card">
+    <div class="card-hd">Ajouter une cession manuellement</div>
+    <div class="cession-form">
+      <div><label>Titre</label><input type="text" id="cess-nom" placeholder="Ex: ASML HLDG"></div>
+      <div><label>Compte</label><select id="cess-compte"><option value="PEA">PEA (Boursorama)</option><option value="CTO">CTO (IB)</option></select></div>
+      <div><label>Date</label><input type="date" id="cess-date"></div>
+      <div><label>Quantité</label><input type="number" id="cess-qty" placeholder="Ex: 5" min="0" step="any"></div>
+      <div><label>PRU (€)</label><input type="number" id="cess-pru" placeholder="Ex: 1058" min="0" step="any"></div>
+      <div><label>Prix de vente (€)</label><input type="number" id="cess-prix" placeholder="Ex: 1400" min="0" step="any"></div>
+      <div style="padding-top:1px"><button class="btn-primary" onclick="ajouterCessionManuelle()">+ Ajouter</button></div>
+    </div>
+  </div>
+
+  <!-- Tableau des cessions -->
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="tscroll">
+    <table>
+      <thead><tr>
+        <th onclick="sortCessions('date')">Date <span id="sc-date"></span></th>
+        <th onclick="sortCessions('nom')">Titre <span id="sc-nom"></span></th>
+        <th onclick="sortCessions('compte')">Compte <span id="sc-compte"></span></th>
+        <th style="text-align:right" onclick="sortCessions('qty')">Qté <span id="sc-qty"></span></th>
+        <th style="text-align:right" onclick="sortCessions('pru')">PRU <span id="sc-pru"></span></th>
+        <th style="text-align:right" onclick="sortCessions('prix_vente')">Prix vente <span id="sc-prix_vente"></span></th>
+        <th style="text-align:right" onclick="sortCessions('produit')">Produit € <span id="sc-produit"></span></th>
+        <th style="text-align:right" onclick="sortCessions('pv_eur')">PV/MV € <span id="sc-pv_eur"></span></th>
+        <th style="text-align:right" onclick="sortCessions('pv_pct')">PV/MV % <span id="sc-pv_pct"></span></th>
+        <th>Source</th>
+        <th></th>
+      </tr></thead>
+      <tbody id="cessions-body"><tr><td colspan="11" style="text-align:center;padding:20px;color:#888">Aucune cession enregistrée pour l'année en cours.</td></tr></tbody>
+    </table>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:flex-end;margin-top:8px">
+    <button class="btn-danger" onclick="exportCessionsCSV()">⬇ Exporter CSV</button>
   </div>
 </div>
 
@@ -582,7 +638,7 @@ function saveSnapshot(date, positions) {
     const key = `${p.broker}|${p.name}`;
     snap[key] = { price: p.price, value_eur: p.value_eur, pv_eur: p.pv_eur, pv_pct: p.pv_pct };
   }
-  h[date] = { date, snap, total_eur: positions.reduce((s,p)=>s+(p.value_eur||0),0), total_pv: positions.reduce((s,p)=>s+(p.pv_eur||0),0) };
+  h[date] = { date, snap, cash_ib: positions.find(p=>p.broker==='interactive_brokers'&&p.name?.includes('CASH'))?.value_eur||null, total_eur: positions.reduce((s,p)=>s+(p.value_eur||0),0), total_pv: positions.reduce((s,p)=>s+(p.pv_eur||0),0) };
   const dates = Object.keys(h).sort();
   if (dates.length > 52) delete h[dates[0]];
   saveHistory(h);
@@ -623,6 +679,224 @@ function showTab(id,btn) {
   btn.classList.add('active');
   if(id==='historique') renderHistorique();
   if(id==='desk-history') renderDeskHistory();
+  if(id==='cessions') renderCessions();
+}
+
+// ── CESSIONS RÉALISÉES ────────────────────────────────────────────────────────
+let _cessionsCache = null;
+let cessSortCol = 'date', cessSortDir = -1;
+
+async function loadCessions() {
+  if (_cessionsCache) return _cessionsCache;
+  try {
+    const r = await fetch(WORKER_URL + 'get-cessions');
+    if (!r.ok) throw new Error();
+    const data = await r.json();
+    _cessionsCache = Array.isArray(data) ? data : [];
+    return _cessionsCache;
+  } catch(e) {
+    _cessionsCache = [];
+    return [];
+  }
+}
+
+async function saveCessions(arr) {
+  _cessionsCache = arr;
+  try {
+    await fetch(WORKER_URL + 'save-cessions', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(arr)
+    });
+  } catch(e) { console.error('Erreur sauvegarde cessions:', e); }
+}
+
+// Détecte automatiquement les cessions en comparant deux snapshots
+async function detecterCessions(prevSnap, currSnap, prevCashIB, currCashIB) {
+  if (!prevSnap || !currSnap) return;
+  const cessions = await loadCessions();
+  const today = new Date().toISOString().slice(0,10);
+  const annee = new Date().getFullYear();
+  let nouvelles = 0;
+
+  for (const key of Object.keys(prevSnap)) {
+    // Titre présent avant, absent maintenant → cession probable
+    if (!currSnap[key]) {
+      const [broker, nom] = key.split('|');
+      const prev = prevSnap[key];
+
+      // Éviter les doublons (même titre, même date)
+      const dejaSave = cessions.find(c => c.nom === nom && c.date === today);
+      if (dejaSave) continue;
+
+      // Déterminer le compte
+      const compte = broker === 'boursorama'
+        ? (nom.match(/^[A-Z]/) && !nom.includes('AMUNDI') && !nom.includes('ISHARES') ? 'PEA' : 'PEA')
+        : 'CTO';
+
+      // Calculer le prix de vente
+      let prix_vente = prev.price || 0;
+      let source = 'cours_dernier';
+
+      // Sur IB : affiner avec le delta cash si disponible
+      if (broker === 'interactive_brokers' && prevCashIB != null && currCashIB != null && prev.qty) {
+        const deltaCash = currCashIB - prevCashIB;
+        if (Math.abs(deltaCash) > 10) {
+          prix_vente = Math.abs(deltaCash) / prev.qty;
+          source = 'delta_cash';
+        }
+      }
+
+      const pru = prev.pru || 0;
+      const qty = prev.qty || 0;
+      const produit = Math.round(prix_vente * qty * 100) / 100;
+      const pv_eur = pru > 0 ? Math.round((prix_vente - pru) * qty * 100) / 100 : null;
+      const pv_pct = pru > 0 ? Math.round((prix_vente - pru) / pru * 1000) / 10 : null;
+
+      cessions.push({
+        id: Date.now() + Math.random(),
+        date: today,
+        annee,
+        nom,
+        compte,
+        qty,
+        pru,
+        prix_vente: Math.round(prix_vente * 100) / 100,
+        produit,
+        pv_eur,
+        pv_pct,
+        source, // 'auto', 'delta_cash', 'cours_dernier', 'manuel'
+        note: ''
+      });
+      nouvelles++;
+    }
+  }
+
+  if (nouvelles > 0) {
+    await saveCessions(cessions);
+    toast(`✓ ${nouvelles} cession(s) détectée(s) automatiquement`);
+  }
+}
+
+async function ajouterCessionManuelle() {
+  const nom = document.getElementById('cess-nom').value.trim();
+  const compte = document.getElementById('cess-compte').value;
+  const date = document.getElementById('cess-date').value;
+  const qty = parseFloat(document.getElementById('cess-qty').value);
+  const pru = parseFloat(document.getElementById('cess-pru').value);
+  const prix_vente = parseFloat(document.getElementById('cess-prix').value);
+
+  if (!nom || !date || !qty || !prix_vente) {
+    toast('⚠ Remplis au moins : titre, date, quantité et prix de vente'); return;
+  }
+
+  const produit = Math.round(prix_vente * qty * 100) / 100;
+  const pv_eur = pru > 0 ? Math.round((prix_vente - pru) * qty * 100) / 100 : null;
+  const pv_pct = pru > 0 ? Math.round((prix_vente - pru) / pru * 1000) / 10 : null;
+  const annee = new Date(date).getFullYear();
+
+  const cessions = await loadCessions();
+  cessions.push({ id: Date.now(), date, annee, nom, compte, qty, pru: pru||0, prix_vente, produit, pv_eur, pv_pct, source: 'manuel', note: '' });
+  cessions.sort((a,b) => b.date.localeCompare(a.date));
+  await saveCessions(cessions);
+
+  // Vider le formulaire
+  ['cess-nom','cess-date','cess-qty','cess-pru','cess-prix'].forEach(id => document.getElementById(id).value = '');
+  toast('✓ Cession ajoutée');
+  renderCessions();
+}
+
+async function supprimerCession(id) {
+  if (!confirm('Supprimer cette cession ?')) return;
+  const cessions = (await loadCessions()).filter(c => c.id !== id);
+  await saveCessions(cessions);
+  _cessionsCache = cessions;
+  renderCessions();
+}
+
+function sortCessions(col) {
+  if (cessSortCol === col) cessSortDir *= -1;
+  else { cessSortCol = col; cessSortDir = -1; }
+  renderCessions();
+}
+
+async function renderCessions() {
+  const annee = new Date().getFullYear();
+  const cessions = await loadCessions();
+  const anneeData = cessions.filter(c => c.annee === annee);
+
+  // Totaux
+  const pvPeaEur = anneeData.filter(c=>c.compte==='PEA').reduce((s,c)=>s+(c.pv_eur||0),0);
+  const pvCtoEur = anneeData.filter(c=>c.compte==='CTO'&&(c.pv_eur||0)>0).reduce((s,c)=>s+(c.pv_eur||0),0);
+  const mvCtoEur = anneeData.filter(c=>c.compte==='CTO'&&(c.pv_eur||0)<0).reduce((s,c)=>s+(c.pv_eur||0),0);
+  const netCtaImposable = pvCtoEur + mvCtoEur;
+  const impotEstime = netCtaImposable > 0 ? Math.round(netCtaImposable * 0.30) : 0;
+
+  document.getElementById('cessions-totaux').innerHTML = `
+    <div class="kpi"><div class="lbl">PV nette CTO imposable</div><div class="val ${netCtaImposable>=0?'pos':'neg'}">${netCtaImposable>=0?'+':''}${Math.round(netCtaImposable).toLocaleString('fr-FR')}€</div><div class="sub neu">Flat tax 30% estimée : ${impotEstime.toLocaleString('fr-FR')}€</div></div>
+    <div class="kpi"><div class="lbl">PV CTO brutes ${annee}</div><div class="val pos">+${Math.round(pvCtoEur).toLocaleString('fr-FR')}€</div></div>
+    <div class="kpi"><div class="lbl">MV CTO imputables ${annee}</div><div class="val neg">${Math.round(mvCtoEur).toLocaleString('fr-FR')}€</div><div class="sub neu">À déduire avant le 31/12</div></div>
+    <div class="kpi"><div class="lbl">PV PEA ${annee}</div><div class="val ${pvPeaEur>=0?'pos':'neg'}">${pvPeaEur>=0?'+':''}${Math.round(pvPeaEur).toLocaleString('fr-FR')}€</div><div class="sub neu">Non imposables (dans PEA)</div></div>
+  `;
+
+  // Tri
+  const sorted = [...anneeData].sort((a,b) => {
+    let va = a[cessSortCol], vb = b[cessSortCol];
+    if (va==null) va = cessSortDir>0?1e12:-1e12;
+    if (vb==null) vb = cessSortDir>0?1e12:-1e12;
+    return typeof va==='string' ? cessSortDir*va.localeCompare(vb) : cessSortDir*(va-vb);
+  });
+  ['date','nom','compte','qty','pru','prix_vente','produit','pv_eur','pv_pct'].forEach(c=>{
+    const el = document.getElementById('sc-'+c);
+    if(el) el.textContent = c===cessSortCol?(cessSortDir>0?'↑':'↓'):'';
+  });
+
+  const tbody = document.getElementById('cessions-body');
+  if (!sorted.length) {
+    tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:20px;color:#888">Aucune cession enregistrée pour ${annee}.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = sorted.map(c => {
+    const pvCls = (c.pv_eur||0) >= 0 ? 'pos' : 'neg';
+    const pvSign = (c.pv_eur||0) >= 0 ? '+' : '';
+    const compteBadge = c.compte === 'PEA'
+      ? `<span class="cession-badge-pea">PEA</span>`
+      : `<span class="cession-badge-cto">CTO</span>`;
+    const sourceBadge = c.source === 'manuel'
+      ? `<span style="font-size:11px;color:#888">✏ manuel</span>`
+      : c.source === 'delta_cash'
+      ? `<span style="font-size:11px;color:#3B6D11">⚡ cash</span>`
+      : `<span style="font-size:11px;color:#888">~ auto</span>`;
+    return `<tr>
+      <td style="font-size:12px">${c.date}</td>
+      <td style="font-size:12px;font-weight:500">${c.nom}</td>
+      <td>${compteBadge}</td>
+      <td style="text-align:right">${fN(c.qty,0)}</td>
+      <td style="text-align:right;color:#888">${c.pru?fN(c.pru,2):'—'}</td>
+      <td style="text-align:right;font-weight:500">${fN(c.prix_vente,2)}</td>
+      <td style="text-align:right">${c.produit?Math.round(c.produit).toLocaleString('fr-FR')+'€':'—'}</td>
+      <td style="text-align:right"><span class="${pvCls}">${c.pv_eur!=null?pvSign+Math.round(c.pv_eur).toLocaleString('fr-FR')+'€':'—'}</span></td>
+      <td style="text-align:right"><span class="${pvCls}">${c.pv_pct!=null?pvSign+fN(c.pv_pct)+'%':'—'}</span></td>
+      <td>${sourceBadge}</td>
+      <td><button class="btn-danger" onclick="supprimerCession(${c.id})">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+async function exportCessionsCSV() {
+  const annee = new Date().getFullYear();
+  const cessions = (await loadCessions()).filter(c => c.annee === annee);
+  if (!cessions.length) { toast('Aucune cession à exporter'); return; }
+  const header = 'Date;Titre;Compte;Quantité;PRU;Prix vente;Produit €;PV/MV €;PV/MV %;Source\n';
+  const rows = cessions.map(c =>
+    `${c.date};${c.nom};${c.compte};${c.qty};${c.pru||''};${c.prix_vente};${c.produit||''};${c.pv_eur||''};${c.pv_pct||''};${c.source}`
+  ).join('\n');
+  const blob = new Blob([header+rows], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `cessions_${annee}.csv`;
+  a.click();
 }
 
 async function loadData() {
@@ -955,7 +1229,27 @@ async function handleFiles(files) {
   const total_pv=allPositions.reduce((s,p)=>s+(p.pv_eur||0),0);
   const sorted=allPositions.sort((a,b)=>(b.value_eur||0)-(a.value_eur||0));
   const today=new Date().toISOString().slice(0,10);
+
+  // Récupérer le snapshot précédent AVANT d'écraser avec le nouveau
+  const histAvant = loadHistory();
+  const datesAvant = Object.keys(histAvant).sort().filter(d => d < today);
+  const prevSnap = datesAvant.length ? histAvant[datesAvant[datesAvant.length-1]].snap : null;
+  const prevCashIB = datesAvant.length ? histAvant[datesAvant[datesAvant.length-1]].cash_ib : null;
+
   saveSnapshot(today, sorted);
+
+  // Cash IB de la semaine actuelle
+  const currCashIB = allPositions.find(p => p.broker === 'interactive_brokers' && p.name && p.name.includes('CASH'))?.value_eur || null;
+
+  // Construire le snapshot courant pour comparaison
+  const currSnap = {};
+  for (const p of sorted) {
+    const key = `${p.broker}|${p.name}`;
+    currSnap[key] = { price: p.price, value_eur: p.value_eur, pru: p.pru, qty: p.qty };
+  }
+
+  // Détecter automatiquement les cessions (silencieux, pas bloquant)
+  detecterCessions(prevSnap, currSnap, prevCashIB, currCashIB).catch(()=>{});
 
   const portfolio={
     positions:sorted, total_value_eur:Math.round(total_eur),
