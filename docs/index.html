@@ -15,7 +15,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   .upload-z{border-color:rgba(255,255,255,0.15)}
   .upload-z:hover,.upload-z.drag{background:#1a2e1a;border-color:#3B6D11}
   .flt{color:#888;border-color:rgba(255,255,255,0.15)}
-  td{border-color:rgba(255,255,255,0.05)}
+  td{border-color:rgba(255,255,255,0.05)}a
   th{border-color:rgba(255,255,255,0.1);color:#888}
   tr:hover td{background:rgba(255,255,255,0.03)}
   select,input{background:#1c1c1e;color:#f0f0f0;border-color:#333}
@@ -417,10 +417,7 @@ async function buildHistoricalContext() {
 
 async function generateDeskComment(portfolio) {
   const deskBox = document.getElementById('desk-comment-box');
-  const recoBox = document.getElementById('desk-reco-box');
   if (!deskBox) return;
-
-  deskBox.innerHTML = `<div class="desk-streaming"><span class="spinner"></span>Le desk analyse votre portefeuille...<span class="cursor"></span></div>`;
 
   const positions = portfolio.positions || [];
   const top15 = [...positions].sort((a,b) => (b.value_eur||0)-(a.value_eur||0)).slice(0,15);
@@ -428,104 +425,107 @@ async function generateDeskComment(portfolio) {
   const mvMoins = positions.filter(p => p.pv_pct < -20).map(p => `${p.name} (${p.pv_pct?.toFixed(1)}%)`).join(', ');
   const today = new Date().toLocaleDateString('fr-FR', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
   const histCtx = await buildHistoricalContext();
+  const topTickers = top15.slice(0,8).map(p => p.name.split(' ')[0]).join(', ');
 
   const portfolioText = top15.map(p =>
-    `${p.name} (${p.broker}): ${p.qty ? p.qty + ' titres' : ''} ${p.price ? '@ ' + p.price?.toFixed(2) : ''} = ${p.value_eur ? Math.round(p.value_eur).toLocaleString('fr-FR') + '€' : '?'} | PV/MV: ${p.pv_pct != null ? (p.pv_pct >= 0 ? '+' : '') + p.pv_pct?.toFixed(1) + '%' : '?'} | Semaine: ${p.week_chg != null && p.week_chg !== 0 ? (p.week_chg >= 0 ? '+' : '') + p.week_chg?.toFixed(1) + '%' : '—'}`
+    `${p.name} (${p.broker}): ${p.qty ? p.qty + ' titres' : ''} ${p.price ? '@ ' + p.price?.toFixed(2) : ''} = ${p.value_eur ? Math.round(p.value_eur).toLocaleString('fr-FR') + 'EUR' : '?'} | PV/MV: ${p.pv_pct != null ? (p.pv_pct >= 0 ? '+' : '') + p.pv_pct?.toFixed(1) + '%' : '?'} | Sem: ${p.week_chg != null && p.week_chg !== 0 ? (p.week_chg >= 0 ? '+' : '') + p.week_chg?.toFixed(1) + '%' : '-'}`
   ).join('\n');
 
-  const systemPrompt = `Tu es le desk d'analyse de Pascal Terminal, le broker IA personnel de Pascal, investisseur parisien privé. Tu combines la rigueur d'un analyste sell-side senior, la vision macro d'un gérant de fonds global, et la connaissance intime du portefeuille de Pascal.
+  const systemPrompt = `Tu es le desk d'analyse de Pascal Terminal, broker IA personnel de Pascal, investisseur parisien prive. Tu combines la rigueur d'un analyste sell-side senior et la vision macro d'un gerant de fonds global.
 
-Ton rôle : chaque samedi, après l'import du portefeuille, tu génères un commentaire du desk complet, structuré, actionnable. Tu parles directement à Pascal à la deuxième personne. Tu es direct, précis, sans langue de bois.
+REGLE FISCALE PEA (compte Boursorama) : Toutes les positions boursorama sont en PEA - AUCUNE fiscalite avant retrait. Ne JAMAIS recommander vente pour raison fiscale sur Boursorama. Carmat et CNIM radiees (liquidation) - invendables. Cristallisation MV avant 31/12 = uniquement Interactive Brokers (CTO).
 
-RÈGLE FISCALE IMPÉRATIVE — PEA (compte Boursorama) :
-Toutes les positions du courtier "boursorama" sont logées dans un PEA (Plan d'Épargne en Actions). À l'intérieur d'un PEA, il n'y a AUCUNE fiscalité sur les plus-values ou moins-values tant qu'aucun retrait n'est effectué — la fiscalité (flat tax 30% ou option barème IR) ne s'applique qu'au moment d'un retrait, sur le gain net global du compte, et seulement après 5 ans pour conserver les avantages.
-EN CONSÉQUENCE :
-- Ne JAMAIS recommander de vendre une position Boursorama "pour cristalliser une moins-value fiscale" ou "optimiser fiscalement avant le 30 juin" — cette logique n'existe PAS dans un PEA, elle ne s'applique qu'aux comptes-titres ordinaires (CTO, donc Interactive Brokers).
-- Les moins-values latentes sur des titres PEA comme Carmat ou CNIM ne sont PAS imputables avant la clôture ou un retrait global du PEA. Elles restent "gelées" dans le compte.
-- Si un titre PEA a été radié de la cote suite à une liquidation judiciaire (ex: Carmat, CNIM), Pascal ne peut PLUS le vendre — il ne reste qu'à constater la moins-value latente, qui ne s'imputera qu'à la clôture du PEA. Ne jamais lister ce type de titre en action "VENTE" — utilise plutôt "SURVEILLER" avec la mention explicite que le titre est gelé/radié.
-- Pour les vraies décisions de vente sur Boursorama, la seule logique pertinente est : la thèse d'investissement est-elle toujours valide ? Le capital serait-il mieux employé ailleurs dans le PEA ? Jamais une logique fiscale de court terme.
-- Sur Interactive Brokers (CTO), la logique fiscale française de cristallisation des moins-values avant le 31 décembre (pas le 30 juin) reste pertinente et peut être mentionnée si applicable.
+PROCESSUS OBLIGATOIRE EN DEUX TEMPS :
+1. RECHERCHE D'ABORD : utilise le web search pour (a) actualite marches tech et energie cette semaine, (b) resultats trimestriels recents de tes principales positions, (c) opportunites short identifiees par analystes, (d) contexte macro/geopolitique. MINIMUM 6 recherches avant de rediger.
+2. SYNTHESE ENSUITE : apres tes recherches, genere le JSON complet.
 
-Tu dois IMPÉRATIVEMENT répondre en JSON valide avec cette structure exacte :
-{
-  "resume": "Synthèse de 2-3 phrases sur la semaine et l'état du portefeuille",
-  "contexte_macro": "Analyse macro et géopolitique de la semaine en 3-5 phrases",
-  "alertes": [
-    {"type": "danger|success|warning|info", "titre": "...", "detail": "..."}
-  ],
-  "actions_samedi_matin": [
-    {"priorite": 1, "type": "VENTE|ACHAT_CT|ACHAT_LT|ALLEGER|SURVEILLER", "nom": "Nom exact de la position concernée", "courtier": "Boursorama|IB|Linxea", "rationale": "Pourquoi cette action, en une phrase", "montant_suggere": 1000, "prix_cible": "250€", "stop_loss": "230€"}
-  ],
-  "top_screener_ct": [
-    {"nom": "Nom de l'opportunité hors portefeuille", "ticker": "TICKER", "theme": "Thème macro (IA, défense, énergie...)", "prix": "100€", "cible_ct": "120€", "rationale": "Pourquoi cette idée maintenant", "momentum_score": 75}
-  ],
-  "top_screener_lt": [
-    {"nom": "Nom de la conviction long terme", "ticker": "TICKER", "theme": "Thème", "these_retraite": "La thèse d'investissement en une phrase", "montant_suggere": 2000}
-  ],
-  "recos_ct": ["Préconisation 1 court terme", "Préconisation 2", "Préconisation 3"],
-  "recos_mt": ["Préconisation 1 moyen terme", "Préconisation 2", "Préconisation 3"],
-  "recos_lt": ["Préconisation 1 long terme", "Préconisation 2", "Préconisation 3"],
-  "suivi_preco": "Évaluation de tes préconisations des semaines passées : ont-elles été bonnes ? Lesquelles ont été validées ou invalidées par le marché ? Que corriges-tu ?"
-}
+QUALITE EXIGEE : chaque recommandation cite un catalyseur precis, un horizon, un prix cible chiffre et un stop-loss. Inclure au moins une idee SHORT sur le CTO IB quand justifie.
 
-CONTRAINTES STRICTES DE LONGUEUR (impératif pour éviter toute troncature) :
-- Maximum 5 alertes, chaque "detail" limité à 280 caractères maximum
-- Maximum 5 actions_samedi_matin, chaque "rationale" limité à 150 caractères maximum
-- Maximum 3 top_screener_ct et 3 top_screener_lt, chaque "rationale"/"these_retraite" limité à 150 caractères maximum
-- Chaque élément de recos_ct, recos_mt, recos_lt limité à 150 caractères maximum
-- "resume" maximum 400 caractères, "contexte_macro" maximum 600 caractères, "suivi_preco" maximum 400 caractères
-- actions_samedi_matin doit porter sur des positions RÉELLEMENT présentes dans le portefeuille fourni ci-dessous
-- top_screener_ct et top_screener_lt doivent être des idées HORS du portefeuille actuel (nouvelles opportunités)
-- Sois dense et percutant plutôt qu'exhaustif — la concision est une exigence absolue, pas une option
+JSON final (apres recherches) - structure exacte :
+{"resume":"...","contexte_macro":"...","alertes":[{"type":"danger|success|warning|info","titre":"...","detail":"..."}],"actions_samedi_matin":[{"priorite":1,"type":"VENTE|ACHAT_CT|ACHAT_LT|ALLEGER|SURVEILLER|SHORT","nom":"...","courtier":"Boursorama|IB|Linxea","rationale":"...","montant_suggere":1000,"prix_cible":"250$","stop_loss":"230$"}],"top_screener_ct":[{"nom":"...","ticker":"...","theme":"...","prix":"...","cible_ct":"...","rationale":"...","momentum_score":75}],"top_screener_lt":[{"nom":"...","ticker":"...","theme":"...","these_retraite":"...","montant_suggere":2000}],"recos_ct":["..."],"recos_mt":["..."],"recos_lt":["..."],"suivi_preco":"..."}
 
-Ne réponds QUE avec le JSON brut. Ne mets JAMAIS de balises markdown comme \`\`\`json ou \`\`\`. Ne mets AUCUN texte avant ou après le JSON. Ta réponse doit commencer directement par { et finir directement par }.${histCtx}`;
+CONTRAINTES : max 5 alertes, max 5 actions, max 3 screeners CT et LT. JSON brut commencant par { finissant par }. Pas de markdown.${histCtx}`;
 
   const userPrompt = `Nous sommes le ${today}.
 
-PORTEFEUILLE DE PASCAL (15 principales positions par valeur) :
+PORTEFEUILLE DE PASCAL - 15 principales positions :
 ${portfolioText}
 
-Total portefeuille : ${Math.round(portfolio.total_value_eur || 0).toLocaleString('fr-FR')}€
-PV/MV globale : ${portfolio.total_pv_eur >= 0 ? '+' : ''}${Math.round(portfolio.total_pv_eur || 0).toLocaleString('fr-FR')}€ (${portfolio.total_pv_pct >= 0 ? '+' : ''}${portfolio.total_pv_pct?.toFixed(1)}%)
+Total : ${Math.round(portfolio.total_value_eur || 0).toLocaleString('fr-FR')}EUR | PV/MV : ${portfolio.total_pv_eur >= 0 ? '+' : ''}${Math.round(portfolio.total_pv_eur || 0).toLocaleString('fr-FR')}EUR (${portfolio.total_pv_pct >= 0 ? '+' : ''}${portfolio.total_pv_pct?.toFixed(1)}%)
 Courtiers : ${portfolio.brokers?.join(', ')}
-${mvPlus ? '\nPositions en forte plus-value (>+20%) : ' + mvPlus : ''}
-${mvMoins ? '\nPositions en forte moins-value (< -20%) : ' + mvMoins : ''}
+${mvPlus ? 'Fortes PV (>+20%) : ' + mvPlus : ''}
+${mvMoins ? 'Fortes MV (<-20%) : ' + mvMoins : ''}
+Tickers prioritaires a rechercher : ${topTickers}
 
-Génère le commentaire du desk complet pour cette semaine. Utilise ta connaissance de l'actualité financière et géopolitique de cette semaine pour personnaliser l'analyse.`;
+INSTRUCTIONS : Lance tes recherches web (minimum 6), puis genere le commentaire du desk complet en JSON.`;
+
+  const webSearchTool = { type: "web_search_20250305", name: "web_search" };
+  let messages = [{ role: 'user', content: userPrompt }];
+  let finalText = '';
+  let iterationCount = 0;
+  const MAX_ITERATIONS = 15;
+
+  deskBox.innerHTML = '<div class="desk-streaming"><span class="spinner"></span>Le desk recherche l\'actualite des marches...<span class="cursor"></span></div>';
 
   try {
-    // ── Appel via le Cloudflare Worker (proxy sécurisé) au lieu d'Anthropic direct ──
-    const resp = await fetch(WORKER_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: CLAUDE_MODEL,
-        max_tokens: 8000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }]
-      })
-    });
+    while (iterationCount < MAX_ITERATIONS) {
+      iterationCount++;
 
-    if (!resp.ok) throw new Error(`Erreur serveur ${resp.status}`);
-    const data = await resp.json();
-    const rawText = data.content?.find(b => b.type === 'text')?.text || '';
+      const resp = await fetch(WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: CLAUDE_MODEL,
+          max_tokens: 8000,
+          system: systemPrompt,
+          tools: [webSearchTool],
+          messages: messages
+        })
+      });
+
+      if (!resp.ok) throw new Error(`Erreur serveur ${resp.status}`);
+      const data = await resp.json();
+      messages.push({ role: 'assistant', content: data.content });
+
+      if (data.stop_reason === 'end_turn') {
+        const textBlock = data.content.find(b => b.type === 'text');
+        if (textBlock) finalText = textBlock.text;
+        break;
+      }
+
+      if (data.stop_reason === 'tool_use') {
+        const toolUseBlocks = data.content.filter(b => b.type === 'tool_use');
+        const queries = toolUseBlocks.map(t => t.input?.query || '...').join(' | ');
+        deskBox.innerHTML = `<div class="desk-streaming"><span class="spinner"></span>Recherche ${iterationCount} : ${queries}<span class="cursor"></span></div>`;
+
+        const toolResults = toolUseBlocks.map(toolUse => {
+          const inline = data.content.find(b => b.type === 'tool_result' && b.tool_use_id === toolUse.id);
+          return {
+            type: 'tool_result',
+            tool_use_id: toolUse.id,
+            content: inline ? inline.content : 'Recherche effectuee.'
+          };
+        });
+        messages.push({ role: 'user', content: toolResults });
+      }
+    }
+
+    if (!finalText) throw new Error('Analyse non generee apres recherches');
 
     let desk;
     try {
-      let clean = rawText.replace(/```json|```/g, '').trim();
+      let clean = finalText.replace(/```json|```/g, '').trim();
       const firstBrace = clean.indexOf('{');
       const lastBrace = clean.lastIndexOf('}');
-      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-        clean = clean.slice(firstBrace, lastBrace + 1);
-      }
+      if (firstBrace !== -1 && lastBrace !== -1) clean = clean.slice(firstBrace, lastBrace + 1);
       desk = JSON.parse(clean);
     } catch(e) {
-      console.error('Parsing JSON échoué. Texte brut reçu:', rawText);
-      throw new Error('Réponse invalide du modèle (voir console pour le détail)');
+      console.error('Parsing JSON echoue:', finalText.slice(0, 500));
+      throw new Error('Reponse invalide du modele (voir console)');
     }
 
-    // Injecter les actions et opportunités pour affichage immédiat
-    // dans les onglets "Plan du samedi" (actions prioritaires) et "Opportunités"
+    renderDeskComment(desk);
+
     if (DATA) {
       DATA.analysis = DATA.analysis || {};
       DATA.analysis.actions_samedi_matin = desk.actions_samedi_matin || [];
@@ -535,36 +535,28 @@ Génère le commentaire du desk complet pour cette semaine. Utilise ta connaissa
     }
     renderActionsPrioritaires(desk.actions_samedi_matin || []);
 
-    renderDeskComment(desk);
-
     const today_iso = new Date().toISOString().slice(0,10);
     await saveDeskEntry({
-      date: today_iso,
-      total_eur: portfolio.total_value_eur,
-      resume: desk.resume,
-      contexte_macro: desk.contexte_macro,
-      alertes: desk.alertes,
-      actions_samedi_matin: desk.actions_samedi_matin,
-      top_screener_ct: desk.top_screener_ct,
-      top_screener_lt: desk.top_screener_lt,
-      recos_ct: desk.recos_ct,
-      recos_mt: desk.recos_mt,
-      recos_lt: desk.recos_lt,
-      suivi_preco: desk.suivi_preco,
-      generated_at: new Date().toISOString()
+      date: today_iso, total_eur: portfolio.total_value_eur,
+      resume: desk.resume, contexte_macro: desk.contexte_macro,
+      alertes: desk.alertes, actions_samedi_matin: desk.actions_samedi_matin,
+      top_screener_ct: desk.top_screener_ct, top_screener_lt: desk.top_screener_lt,
+      recos_ct: desk.recos_ct, recos_mt: desk.recos_mt, recos_lt: desk.recos_lt,
+      suivi_preco: desk.suivi_preco, generated_at: new Date().toISOString()
     });
 
     await renderDeskHistory();
-    toast('✓ Commentaire du desk généré');
+    toast(`Analyse complete (${iterationCount} etapes dont recherches web)`);
 
   } catch(e) {
     deskBox.innerHTML = `<div style="color:#A32D2D;font-size:13px;padding:10px">
-      ⚠ Erreur lors de la génération : ${e.message}<br>
-      <span style="font-size:12px;color:#888">Vérifiez la configuration du Worker et réessayez.</span>
+      Erreur : ${e.message}<br>
+      <span style="font-size:12px;color:#888">Voir la console pour le detail.</span>
     </div>`;
     console.error('Desk generation error:', e);
   }
 }
+
 
 function renderDeskComment(desk) {
   const deskBox = document.getElementById('desk-comment-box');
