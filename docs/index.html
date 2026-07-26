@@ -8,7 +8,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;background:#f0efe8;color:#1a1a1a}
 @media(prefers-color-scheme:dark){
-  body{background:#111;color:#f0f0f0}a
+  body{background:#111;color:#f0f0f0}
   .card,.kpi,.macro-item,.opp-card{background:#1c1c1e!important;border-color:rgba(255,255,255,0.07)!important}
   .card-inner{background:#242426!important}
   .comment-box{background:#0a0a0a}
@@ -431,89 +431,51 @@ async function generateDeskComment(portfolio) {
     `${p.name} (${p.broker}): ${p.qty ? p.qty+' titres' : ''} ${p.price ? '@ '+p.price?.toFixed(2) : ''} = ${p.value_eur ? Math.round(p.value_eur).toLocaleString('fr-FR')+'EUR' : '?'} | PV/MV: ${p.pv_pct != null ? (p.pv_pct>=0?'+':'')+p.pv_pct?.toFixed(1)+'%' : '?'} | Sem: ${p.week_chg != null && p.week_chg !== 0 ? (p.week_chg>=0?'+':'')+p.week_chg?.toFixed(1)+'%' : '-'}`
   ).join('\n');
 
-  const webSearchTool = { type: "web_search_20250305", name: "web_search" };
-
-  // ── APPEL 1 : Recherches web (max ~70s) ─────────────────────────────────
-  deskBox.innerHTML = '<div class="desk-streaming"><span class="spinner"></span>Etape 1/2 - Recherche de l\'actualite des marches...<span class="cursor"></span></div>';
-
-  const systemPhase1 = `Tu es un analyste financier senior. Ta mission : effectuer des recherches web approfondies sur l'actualite financiere de cette semaine pour preparer un briefing portefeuille.
-
-INSTRUCTIONS : Fais exactement 6 recherches web ciblees sur :
-1. Performance marches tech cette semaine (Nasdaq, semiconducteurs, IA)
-2. Secteur energie propre et transition energetique actualite
-3. Resultats trimestriels recents des principales positions : ${topTickers}
-4. Contexte macro : Fed, taux, dollar, geopolitique semaine en cours
-5. Opportunites identifiees par analystes : hausses et baisses recommandees
-6. Idees de vente a decouvert (short) documentees sur titres survalues
-
-Apres tes recherches, produis un rapport de synthese TEXTE LIBRE (pas JSON) avec toutes les informations factuelles trouvees, titres et chiffres precis. Ce rapport sera utilise pour generer l'analyse finale.`;
-
-  const userPhase1 = `Nous sommes le ${today}. Portefeuille de Pascal : ${top15.map(p=>p.name).join(', ')}. Lance tes 6 recherches web maintenant et synthetise les resultats.`;
-
-  let researchSummary = '';
-  let iterCount = 0;
-  const MAX_ITER = 10;
-
   try {
-    let messages1 = [{ role: 'user', content: userPhase1 }];
+    // ── PHASE 1 : Enrichissement marche via Worker (news + cours) ─────────
+    deskBox.innerHTML = '<div class="desk-streaming"><span class="spinner"></span>Etape 1/2 - Collecte de l\'actualite des marches...<span class="cursor"></span></div>';
 
-    while (iterCount < MAX_ITER) {
-      iterCount++;
-      const r1 = await fetch(WORKER_URL, {
+    let marketContext = '';
+    try {
+      const r1 = await fetch(WORKER_URL + 'fetch-market-news', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: CLAUDE_MODEL,
-          max_tokens: 4000,
-          system: systemPhase1,
-          tools: [webSearchTool],
-          messages: messages1
-        })
+        body: JSON.stringify({ tickers: topTickers })
       });
-      if (!r1.ok) throw new Error(`Phase 1 erreur ${r1.status}`);
-      const d1 = await r1.json();
-      messages1.push({ role: 'assistant', content: d1.content });
-
-      if (d1.stop_reason === 'end_turn') {
-        const tb = d1.content.find(b => b.type === 'text');
-        if (tb) researchSummary = tb.text;
-        break;
+      if (r1.ok) {
+        const d1 = await r1.json();
+        if (d1.quotes && Object.keys(d1.quotes).length > 0) {
+          marketContext += 'COURS EN TEMPS REEL (cette semaine) :\n';
+          for (const [t, q] of Object.entries(d1.quotes)) {
+            marketContext += `${t}: ${q.price}$ (${q.weekChg} sur 5j)\n`;
+          }
+        }
+        if (d1.news && d1.news.length > 0) {
+          marketContext += '\nACTUALITE MARCHES (titres RSS Yahoo Finance) :\n';
+          d1.news.forEach(n => { marketContext += `- ${n}\n`; });
+        }
       }
-
-      if (d1.stop_reason === 'tool_use') {
-        const tools = d1.content.filter(b => b.type === 'tool_use');
-        const queries = tools.map(t => t.input?.query || '...').join(' | ');
-        deskBox.innerHTML = `<div class="desk-streaming"><span class="spinner"></span>Etape 1/2 - Recherche ${iterCount} : ${queries}<span class="cursor"></span></div>`;
-
-        const results = tools.map(t => {
-          const inline = d1.content.find(b => b.type === 'tool_result' && b.tool_use_id === t.id);
-          return { type: 'tool_result', tool_use_id: t.id, content: inline ? inline.content : 'OK' };
-        });
-        messages1.push({ role: 'user', content: results });
-      }
+    } catch(e) {
+      marketContext = '(donnees marche indisponibles cette semaine)';
     }
 
-    if (!researchSummary) throw new Error('Phase 1 : aucune synthese produite');
+    // ── PHASE 2 : Analyse Claude avec donnees enrichies ───────────────────
+    deskBox.innerHTML = '<div class="desk-streaming"><span class="spinner"></span>Etape 2/2 - Generation de l\'analyse...<span class="cursor"></span></div>';
 
-    // ── APPEL 2 : Synthese en JSON (max ~40s) ────────────────────────────
-    deskBox.innerHTML = '<div class="desk-streaming"><span class="spinner"></span>Etape 2/2 - Generation de l\'analyse finale...<span class="cursor"></span></div>';
-
-    const systemPhase2 = `Tu es le desk d'analyse de Pascal Terminal, broker IA personnel de Pascal, investisseur parisien prive. Tu produis une analyse actionnable, precise, sans langue de bois.
+    const systemPrompt = `Tu es le desk d'analyse de Pascal Terminal, broker IA personnel de Pascal, investisseur parisien prive. Tu combines la rigueur d'un analyste sell-side senior et la vision macro d'un gerant de fonds global.
 
 REGLE FISCALE PEA (compte Boursorama) : positions en PEA = AUCUNE fiscalite avant retrait. Ne JAMAIS recommander vente pour raison fiscale sur Boursorama. Carmat et CNIM radiees (invendables). Cristallisation MV avant 31/12 = uniquement IB (CTO).
 
-Tu disposes ci-dessous des resultats de recherche web de cette semaine. Utilise ces donnees factuelles pour produire une analyse de qualite professionnelle avec catalyseurs precis, prix cibles chiffres et stops documentes. Inclure au moins une idee SHORT sur IB (CTO) si justifiee.
+Tu disposes ci-dessous de donnees de marche en temps reel (cours et news de la semaine). Utilise ces donnees pour produire une analyse de qualite professionnelle. Chaque recommandation doit citer un catalyseur precis, un horizon, un prix cible chiffre et un stop documente. Inclure au moins une idee SHORT sur IB (CTO) si justifiee par l'actualite.
 
 JSON final obligatoire :
 {"resume":"...","contexte_macro":"...","alertes":[{"type":"danger|success|warning|info","titre":"...","detail":"..."}],"actions_samedi_matin":[{"priorite":1,"type":"VENTE|ACHAT_CT|ACHAT_LT|ALLEGER|SURVEILLER|SHORT","nom":"...","courtier":"Boursorama|IB|Linxea","rationale":"...","montant_suggere":1000,"prix_cible":"250$","stop_loss":"230$"}],"top_screener_ct":[{"nom":"...","ticker":"...","theme":"...","prix":"...","cible_ct":"...","rationale":"...","momentum_score":75}],"top_screener_lt":[{"nom":"...","ticker":"...","theme":"...","these_retraite":"...","montant_suggere":2000}],"recos_ct":["..."],"recos_mt":["..."],"recos_lt":["..."],"suivi_preco":"..."}
 
 CONTRAINTES : max 5 alertes, max 5 actions, max 3 screeners CT et LT. JSON brut commencant par { finissant par }. Pas de markdown.${histCtx}`;
 
-    const userPhase2 = `Nous sommes le ${today}.
+    const userPrompt = `Nous sommes le ${today}.
 
-RESULTATS DE RECHERCHE WEB (cette semaine) :
-${researchSummary}
-
+${marketContext ? 'DONNEES MARCHE EN TEMPS REEL :\n' + marketContext + '\n' : ''}
 PORTEFEUILLE DE PASCAL - 15 principales positions :
 ${portfolioText}
 
@@ -521,7 +483,7 @@ Total : ${Math.round(portfolio.total_value_eur||0).toLocaleString('fr-FR')}EUR |
 ${mvPlus ? 'Fortes PV : '+mvPlus : ''}
 ${mvMoins ? 'Fortes MV : '+mvMoins : ''}
 
-Genere maintenant le JSON final de l'analyse du desk.`;
+Genere le commentaire du desk complet en JSON.`;
 
     const r2 = await fetch(WORKER_URL, {
       method: 'POST',
@@ -529,12 +491,12 @@ Genere maintenant le JSON final de l'analyse du desk.`;
       body: JSON.stringify({
         model: CLAUDE_MODEL,
         max_tokens: 6000,
-        system: systemPhase2,
-        messages: [{ role: 'user', content: userPhase2 }]
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
       })
     });
 
-    if (!r2.ok) throw new Error(`Phase 2 erreur ${r2.status}`);
+    if (!r2.ok) throw new Error(`Erreur API ${r2.status}`);
     const d2 = await r2.json();
     const rawText = d2.content?.find(b => b.type === 'text')?.text || '';
 
@@ -571,7 +533,7 @@ Genere maintenant le JSON final de l'analyse du desk.`;
     });
 
     await renderDeskHistory();
-    toast('Analyse complete avec recherches web');
+    toast('Analyse complete avec donnees marche en temps reel');
 
   } catch(e) {
     deskBox.innerHTML = `<div style="color:#A32D2D;font-size:13px;padding:10px">
