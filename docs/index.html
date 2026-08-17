@@ -399,15 +399,17 @@ async function buildHistoricalContext() {
   const history = await loadDeskHistory();
   if (!history.length) return '';
   const recent = history.slice(-8);
-  let ctx = '\n\n=== HISTORIQUE DES ANALYSES PRÉCÉDENTES ===\n';
-  ctx += '(Tu dois tenir compte de ces analyses passées pour évaluer tes préconisations antérieures et ajuster tes recommandations)\n\n';
+  // Nettoyer les caractères spéciaux qui pourraient corrompre le payload JSON
+  const clean = s => (s || '').replace(/[\u2018\u2019\u201A\u201B]/g, "'").replace(/[\u201C\u201D\u201E\u201F]/g, '"').replace(/[\u2013\u2014]/g, '-').replace(/[\r\n]+/g, ' ').trim();
+  let ctx = '\n=== HISTORIQUE DES ANALYSES PRECEDENTES ===\n';
+  ctx += '(Tenir compte de ces analyses pour evaluer les preconisations anterieures)\n\n';
   for (const h of recent) {
-    ctx += `--- SEMAINE DU ${h.date} ---\n`;
-    ctx += `Portefeuille total: ${h.total_eur ? Math.round(h.total_eur).toLocaleString('fr-FR') + '€' : '?'}\n`;
-    if (h.recos_ct && h.recos_ct.length) ctx += `Préconisations CT émises: ${h.recos_ct.join(' | ')}\n`;
-    if (h.recos_mt && h.recos_mt.length) ctx += `Préconisations MT émises: ${h.recos_mt.join(' | ')}\n`;
-    if (h.recos_lt && h.recos_lt.length) ctx += `Préconisations LT émises: ${h.recos_lt.join(' | ')}\n`;
-    if (h.resume) ctx += `Résumé du desk: ${h.resume.slice(0, 300)}...\n`;
+    ctx += '--- SEMAINE DU ' + h.date + ' ---\n';
+    ctx += 'Portefeuille: ' + (h.total_eur ? Math.round(h.total_eur).toLocaleString('fr-FR') + 'EUR' : '?') + '\n';
+    if (h.recos_ct && h.recos_ct.length) ctx += 'CT: ' + h.recos_ct.map(clean).join(' | ') + '\n';
+    if (h.recos_mt && h.recos_mt.length) ctx += 'MT: ' + h.recos_mt.map(clean).join(' | ') + '\n';
+    if (h.recos_lt && h.recos_lt.length) ctx += 'LT: ' + h.recos_lt.map(clean).join(' | ') + '\n';
+    if (h.resume) ctx += 'Resume: ' + clean(h.resume).slice(0, 250) + '\n';
     ctx += '\n';
   }
   ctx += '=== FIN HISTORIQUE ===\n';
@@ -467,7 +469,7 @@ async function generateDeskComment(portfolio) {
     // ── PHASE 2 : Analyse Claude ──────────────────────────────────────────
     deskBox.innerHTML = '<div class="desk-streaming"><span class="spinner"></span>Etape 2/2 - Generation analyse...<span class="cursor"></span></div>';
 
-    const systemPrompt = 'Tu es le desk analyse de Pascal Terminal, broker IA personnel de Pascal, investisseur parisien prive. Tu combines la rigueur d\'un analyste sell-side senior et la vision macro d\'un gerant de fonds global.\n\nREGLE FISCALE PEA (compte Boursorama) : positions en PEA = AUCUNE fiscalite avant retrait. Ne JAMAIS recommander vente pour raison fiscale sur Boursorama. Carmat et CNIM radiees (invendables). Cristallisation MV avant 31/12 = uniquement IB (CTO).\n\nPHILOSOPHIE D\'INVESTISSEMENT - REGLE ABSOLUE : Pascal est un investisseur long terme. Il accepte de conserver des positions en forte moins-value pendant des ANNEES si la these fondamentale reste intacte. Il ne vend JAMAIS sur la seule base d\'une baisse de cours ou d\'une MV en pourcentage. Une MV de -17%, -30%, -50% sur une entreprise fondamentalement solide N\'EST PAS une raison de vendre. Ne JAMAIS utiliser la MV comme argument de vente. Ne JAMAIS dire "liberer du capital" comme justification de vente sur une position en MV. La seule raison valide de vendre une position est : la these d\'investissement est DEFINITIVEMENT et STRUCTURELLEMENT cassee (ex: faillite confirmee, disruption irreversible du modele economique, perte definitive du leadership). Exemples de positions a NE PAS recommander de vendre malgre la MV : EssilorLuxottica (leadership optique mondial intact), Capgemini (ESN solide), Dassault Systemes (PLM leader), Alstom (infrastructure ferroviaire), SMCP, Clariane, Edenred, Orange, Pernod Ricard. Titres reellement sans issue (radies ou modele casse) : Carmat (liquide, radie), CNIM (liquide, radie), Virgin Galactic (radie).\n\nCONTEXTE LINXEA PER : Pascal verse 2000EUR/mois repartis ainsi : Echiquier Artificial Intelligence B (LU1819480192) 35% = 700EUR, Amundi MSCI World IT (LU0533033667) 25% = 500EUR, R-co Convertibles Europe (FR0007009139) 20% = 400EUR, Robeco Smart Energy D-EUR (LU2145461757) 20% = 400EUR. Ofi Precious Metals : stock ~10K EUR gele, zero nouveaux flux. Horizon retraite 10-15 ans.\n\nChaque recommandation doit citer un catalyseur precis, un horizon, un prix cible chiffre et un stop documente. Inclure au moins une idee SHORT sur IB (CTO) si justifiee.\n\nJSON final obligatoire - structure exacte sans markdown:\n{"resume":"...","contexte_macro":"...","alertes":[{"type":"danger","titre":"...","detail":"..."}],"actions_samedi_matin":[{"priorite":1,"type":"VENTE","nom":"...","courtier":"Boursorama","rationale":"...","montant_suggere":1000,"prix_cible":"250$","stop_loss":"230$"}],"top_screener_ct":[{"nom":"...","ticker":"...","theme":"...","prix":"...","cible_ct":"...","rationale":"...","momentum_score":75}],"top_screener_lt":[{"nom":"...","ticker":"...","theme":"...","these_retraite":"...","montant_suggere":2000}],"recos_ct":["..."],"recos_mt":["..."],"recos_lt":["..."],"suivi_preco":"..."}\n\nCONTRAINTES : max 5 alertes, max 5 actions, max 3 screeners CT et LT. JSON brut commencant par { finissant par }.';
+    const systemPrompt = 'Tu es le desk analyse de Pascal Terminal, broker IA personnel de Pascal, investisseur parisien prive. Tu combines la rigueur d\'un analyste sell-side senior et la vision macro d\'un gerant de fonds global.\n\nREGLE FISCALE PEA (compte Boursorama) : positions en PEA = AUCUNE fiscalite avant retrait. Ne JAMAIS recommander vente pour raison fiscale sur Boursorama. Carmat et CNIM radiees (invendables). Cristallisation MV avant 31/12 = uniquement IB (CTO).\n\nPHILOSOPHIE D\'INVESTISSEMENT - REGLE ABSOLUE : Pascal est un investisseur long terme. Il accepte de conserver des positions en forte moins-value pendant des ANNEES si la these fondamentale reste intacte. Il ne vend JAMAIS sur la seule base d\'une baisse de cours ou d\'une MV en pourcentage. Une MV de -17%, -30%, -50% sur une entreprise fondamentalement solide N\'EST PAS une raison de vendre. Ne JAMAIS utiliser la MV comme argument de vente. Ne JAMAIS dire "liberer du capital" comme justification de vente sur une position en MV. La seule raison valide de vendre une position est : la these d\'investissement est DEFINITIVEMENT et STRUCTURELLEMENT cassee (ex: faillite confirmee, disruption irreversible du modele economique, perte definitive du leadership). Exemples de positions a NE PAS recommander de vendre malgre la MV : EssilorLuxottica (leadership optique mondial intact), Capgemini (ESN solide), Dassault Systemes (PLM leader), Alstom (infrastructure ferroviaire), SMCP, Clariane, Edenred, Orange, Pernod Ricard. Titres reellement sans issue (radies ou modele casse) : Carmat (liquide, radie), CNIM (liquide, radie), Virgin Galactic (radie).\n\nCONTEXTE LINXEA PER : Pascal verse 2000EUR/mois repartis ainsi : Echiquier Artificial Intelligence B (LU1819480192) 35% = 700EUR, Amundi MSCI World IT (LU0533033667) 25% = 500EUR, R-co Convertibles Europe (FR0007009139) 20% = 400EUR, Robeco Smart Energy D-EUR (LU2145461757) 20% = 400EUR. Ofi Precious Metals : stock ~10K EUR gele, zero nouveaux flux. Horizon retraite 10-15 ans.\n\nChaque recommandation doit citer un catalyseur precis, un horizon, un prix cible chiffre et un stop documente. Inclure au moins une idee SHORT sur IB (CTO) si justifiee.\n\nJSON final obligatoire - structure exacte sans markdown:\n{"orientation_marche":"RISK_ON|RISK_OFF|MIXTE","niveau_risque":"FAIBLE|MODERE|ELEVE|EXTREME","resume":"...","contexte_macro":"...","alertes":[{"type":"danger","titre":"...","detail":"..."}],"actions_samedi_matin":[{"priorite":1,"type":"VENTE","nom":"...","courtier":"Boursorama","rationale":"...","montant_suggere":1000,"prix_cible":"250$","stop_loss":"230$"}],"top_screener_ct":[{"nom":"...","ticker":"...","theme":"...","prix":"...","cible_ct":"...","rationale":"...","momentum_score":75}],"top_screener_lt":[{"nom":"...","ticker":"...","theme":"...","these_retraite":"...","montant_suggere":2000}],"recos_ct":["..."],"recos_mt":["..."],"recos_lt":["..."],"suivi_preco":"..."}\n\nCONTRAINTES : max 5 alertes, max 5 actions, max 3 screeners CT et LT. JSON brut commencant par { finissant par }.';
 
     // Construire le contenu utilisateur sans template literals complexes
     const userLines = [
@@ -762,8 +764,9 @@ async function detecterCessions(prevSnap, currSnap, prevCashIB, currCashIB) {
   }
 
   if (nouvelles > 0) {
+    _cessionsCache = null; // invalider le cache
     await saveCessions(cessions);
-    toast(`✓ ${nouvelles} cession(s) détectée(s) automatiquement`);
+    toast(`✓ ${nouvelles} cession(s) detectee(s) automatiquement`);
   }
 }
 
@@ -893,10 +896,13 @@ async function loadData() {
     // Charger le dernier portefeuille depuis Cloudflare KV (accessible partout, sécurisé)
     const r = await fetch(WORKER_URL + 'get-portfolio');
     const stored = await r.json();
-    if (stored && stored.portfolio) {
+    if (stored && stored.portfolio && stored.portfolio.positions && stored.portfolio.positions.length > 0) {
       DATA = stored;
+    } else if (stored && stored.positions && stored.positions.length > 0) {
+      // Format alternatif : le portfolio est directement stored
+      DATA = { portfolio: stored, generated_at: stored.imported_at, macro: {}, analysis: { orientation_marche: 'MIXTE', niveau_risque: 'MODERE', actions_samedi_matin: [], top_screener_ct: [], top_screener_lt: [], macro_drivers: [], secteurs: { surponderer: [], alleger: [] } } };
     } else {
-      throw new Error('Aucune donnée trouvée');
+      throw new Error('Aucun portefeuille disponible');
     }
     updateTopbar();
     await renderSamedi();
@@ -1140,7 +1146,9 @@ function parseIB(text) {
     const cols=lines[i].split(sep); if(cols.length<3)continue;
     const row={}; headers.forEach((h,j)=>row[h]=(cols[j]||'').trim().replace(/"/g,''));
     const name=row['Produit']||row['Description']||'';
-    if(!name||name.includes('CASH'))continue;
+    if(!name)continue;
+    // Stocker le cash séparément (utilisé pour detecterCessions)
+    if(name.includes('CASH')){positions._cashValue=parseNum(row['Montant en EUR']||row['Value in EUR']);continue;}
     const qty=parseNum(row['Quantité']||row['Quantity']);
     const price=parseNum(row['Clôture']||row['Close Price']||row['Close']);
     const value=parseNum(row['Montant en EUR']||row['Value in EUR']);
@@ -1172,12 +1180,15 @@ function parseLinxea(workbook) {
   return positions;
 }
 
+// Valeurs Linxea de secours si le fichier XLSX n'est pas importé
+// Mis à jour manuellement lors de chaque import Linxea réussi
 const LINXEA_STATIC = [
-  {broker:'linxea',name:'Amundi MSCI World IT',isin:'LU0533033667',qty:null,pru:null,price:null,currency:'EUR',value_eur:13069.81,pv_eur:1583.60,pv_pct:13.8,week_chg:3.9},
-  {broker:'linxea',name:'Ofi Precious Metals',isin:'FR0011170182',qty:null,pru:null,price:null,currency:'EUR',value_eur:12148.80,pv_eur:662.55,pv_pct:5.8,week_chg:6.8},
-  {broker:'linxea',name:'R-co Convertibles EU',isin:'FR0007009139',qty:null,pru:null,price:null,currency:'EUR',value_eur:11966.18,pv_eur:479.88,pv_pct:4.2,week_chg:0.1},
-  {broker:'linxea',name:'FCPR Ardian Multi strat.',isin:'FR0013486446',qty:null,pru:null,price:null,currency:'EUR',value_eur:10102.99,pv_eur:115.49,pv_pct:1.2,week_chg:0},
-  {broker:'linxea',name:'Amundi Nasdaq-100 Swap',isin:'LU1829221024',qty:null,pru:null,price:null,currency:'EUR',value_eur:1718.61,pv_eur:219.84,pv_pct:14.7,week_chg:3.1},
+  {broker:'linxea',name:'Echiquier Artificial Intelligence B',isin:'LU1819480192',qty:null,pru:null,price:null,currency:'EUR',value_eur:0,pv_eur:0,pv_pct:0,week_chg:0},
+  {broker:'linxea',name:'Amundi MSCI World IT',isin:'LU0533033667',qty:null,pru:null,price:null,currency:'EUR',value_eur:0,pv_eur:0,pv_pct:0,week_chg:0},
+  {broker:'linxea',name:'R-co Convertibles Europe',isin:'FR0007009139',qty:null,pru:null,price:null,currency:'EUR',value_eur:0,pv_eur:0,pv_pct:0,week_chg:0},
+  {broker:'linxea',name:'Robeco Smart Energy',isin:'LU2145461757',qty:null,pru:null,price:null,currency:'EUR',value_eur:0,pv_eur:0,pv_pct:0,week_chg:0},
+  {broker:'linxea',name:'Ofi Precious Metals',isin:'FR0011170182',qty:null,pru:null,price:null,currency:'EUR',value_eur:0,pv_eur:0,pv_pct:0,week_chg:0},
+  {broker:'linxea',name:'FCPR Ardian Multi strat.',isin:'FR0013486446',qty:null,pru:null,price:null,currency:'EUR',value_eur:0,pv_eur:0,pv_pct:0,week_chg:0},
 ];
 
 async function handleFiles(files) {
@@ -1236,7 +1247,9 @@ async function handleFiles(files) {
   saveSnapshot(today, sorted);
 
   // Cash IB de la semaine actuelle
-  const currCashIB = allPositions.find(p => p.broker === 'interactive_brokers' && p.name && p.name.includes('CASH'))?.value_eur || null;
+  // Récupérer le cash IB depuis le parseur (stocké séparément, pas dans les positions)
+  const ibPositions = allPositions.filter(p => p.broker === 'interactive_brokers');
+  const currCashIB = ibPositions._cashValue || allPositions.find(p => p.broker === 'interactive_brokers' && p.name && p.name.toUpperCase().includes('CASH'))?.value_eur || null;
 
   // Construire le snapshot courant pour comparaison
   const currSnap = {};
@@ -1297,7 +1310,6 @@ async function handleFiles(files) {
   document.getElementById('samedi').classList.add('active');
 
   await generateDeskComment(portfolio);
-  await renderSamedi();
   toast(`✓ Import + analyse générés`);
 }
 
