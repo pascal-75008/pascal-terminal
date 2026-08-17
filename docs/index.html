@@ -264,7 +264,7 @@ tr:hover td{background:rgba(0,0,0,.02)}
     <div class="card-hd">Ajouter une cession manuellement</div>
     <div class="cession-form">
       <div><label>Titre</label><input type="text" id="cess-nom" placeholder="Ex: ASML HLDG"></div>
-      <div><label>Compte</label><select id="cess-compte"><option value="PEA">PEA (Boursorama)</option><option value="CTO">CTO (IB)</option></select></div>
+      <div><label>Compte</label><select id="cess-compte"><option value="PEA">PEA (Boursorama)</option><option value="CTO-IB">CTO (IB)</option><option value="CTO-BSO">CTO (Boursorama)</option><option value="DEGIRO">DeGiro</option></select></div>
       <div><label>Date</label><input type="date" id="cess-date"></div>
       <div><label>Quantité</label><input type="number" id="cess-qty" placeholder="Ex: 5" min="0" step="any"></div>
       <div><label>PRU (€)</label><input type="number" id="cess-pru" placeholder="Ex: 1058" min="0" step="any"></div>
@@ -335,7 +335,6 @@ tr:hover td{background:rgba(0,0,0,.02)}
 const CLAUDE_MODEL = 'claude-sonnet-4-6';
 // URL de ton Cloudflare Worker — proxy sécurisé vers l'API Anthropic
 const WORKER_URL = 'https://curly-rain-abaa.pascaladgeorges.workers.dev/';
-const DESK_HIST_KEY = 'pascal_desk_history_v2';
 const HIST_KEY = 'pascal_terminal_history';
 
 function checkPwd() {
@@ -531,6 +530,9 @@ async function generateDeskComment(portfolio) {
       DATA.analysis.actions_samedi_matin = desk.actions_samedi_matin || [];
       DATA.analysis.top_screener_ct = desk.top_screener_ct || [];
       DATA.analysis.top_screener_lt = desk.top_screener_lt || [];
+      if (desk.orientation_marche) DATA.analysis.orientation_marche = desk.orientation_marche;
+      if (desk.niveau_risque) DATA.analysis.niveau_risque = desk.niveau_risque;
+      if (desk.macro) DATA.macro = desk.macro;
       renderOpps();
     }
     renderActionsPrioritaires(desk.actions_samedi_matin || []);
@@ -625,7 +627,7 @@ function saveSnapshot(date, positions) {
   const snap = {};
   for (const p of positions) {
     const key = `${p.broker}|${p.name}`;
-    snap[key] = { price: p.price, value_eur: p.value_eur, pv_eur: p.pv_eur, pv_pct: p.pv_pct };
+    snap[key] = { price: p.price, value_eur: p.value_eur, pv_eur: p.pv_eur, pv_pct: p.pv_pct, qty: p.qty, pru: p.pru };
   }
   h[date] = { date, snap, cash_ib: positions.find(p=>p.broker==='interactive_brokers'&&p.name?.includes('CASH'))?.value_eur||null, total_eur: positions.reduce((s,p)=>s+(p.value_eur||0),0), total_pv: positions.reduce((s,p)=>s+(p.pv_eur||0),0) };
   const dates = Object.keys(h).sort();
@@ -719,9 +721,7 @@ async function detecterCessions(prevSnap, currSnap, prevCashIB, currCashIB) {
       if (dejaSave) continue;
 
       // Déterminer le compte
-      const compte = broker === 'boursorama'
-        ? (nom.match(/^[A-Z]/) && !nom.includes('AMUNDI') && !nom.includes('ISHARES') ? 'PEA' : 'PEA')
-        : 'CTO';
+      const compte = broker === 'boursorama' ? 'PEA' : broker === 'interactive_brokers' ? 'CTO-IB' : broker === 'degiro' ? 'DEGIRO' : 'CTO';
 
       // Calculer le prix de vente
       let prix_vente = prev.price || 0;
@@ -971,7 +971,8 @@ async function renderSamedi() {
     renderDeskComment(last);
     const el = document.getElementById('desk-generated-at');
     if (el) el.textContent = `Dernière analyse : ${new Date(last.generated_at || last.date).toLocaleString('fr-FR')}`;
-    document.getElementById('desk-reco-box').style.display = 'block';
+    const recoBox = document.getElementById('desk-reco-box');
+    if(recoBox) recoBox.style.display = 'block';
     renderActionsPrioritaires(last.actions_samedi_matin||[]);
   }
 }
@@ -1041,6 +1042,10 @@ function renderMacro() {
   if (!DATA) return;
   const macro=DATA.macro||{};
   let html=`<div class="macro-grid">`;
+  const hasMacro = Object.values(macro).some(v=>v.price);
+  if(!hasMacro){
+    html+=`<div style="grid-column:1/-1;color:#888;font-size:13px;padding:10px 0">Les données macro sont récupérées lors de la génération du commentaire du desk. Cliquez sur "↻ Regénérer" pour les actualiser.</div>`;
+  }
   for(const[name,vals]of Object.entries(macro)){
     if(!vals.price)continue;
     const chg=vals.week_chg||0,isEur=name.includes('EUR');
@@ -1064,6 +1069,8 @@ function renderHistorique() {
   const sel1 = document.getElementById('hist-date1');
   const sel2 = document.getElementById('hist-date2');
   const cur1 = sel1.value, cur2 = sel2.value;
+  // sel1 = date de référence (ancienne) = ordre chronologique inversé → fin de liste
+  // sel2 = date de comparaison (récente) = début de liste
   sel1.innerHTML = dates.map(d=>`<option value="${d}" ${d===cur1?'selected':''}>${d}</option>`).join('');
   sel2.innerHTML = dates.map(d=>`<option value="${d}" ${d===cur2?'selected':''}>${d}</option>`).join('');
   if (!dates.length) {
@@ -1071,8 +1078,9 @@ function renderHistorique() {
     document.getElementById('hist-summary').innerHTML = '';
     return;
   }
-  const d1 = sel1.value || dates[Math.min(1,dates.length-1)];
-  const d2 = sel2.value || dates[0];
+  // d1 = date ancienne (référence), d2 = date récente (comparaison)
+  const d1 = sel1.value || dates[dates.length-1]; // plus ancienne par défaut
+  const d2 = sel2.value || dates[0];              // plus récente par défaut
   sel1.value = d1; sel2.value = d2;
   const snap1 = h[d1]?.snap || {};
   const snap2 = h[d2]?.snap || {};
@@ -1278,7 +1286,7 @@ async function handleFiles(files) {
     <span style="font-weight:400;font-size:12px;color:#888">${withChg} variations calculées${withChg===0?' (premier import)':''}</span>
   </div>`;
 
-  updateTopbar(); await renderSamedi(); renderOpps(); renderMacro(); renderPtf();
+  updateTopbar(); renderOpps(); renderMacro(); renderPtf();
 
   fill.style.width='100%';
   setTimeout(() => { prog.style.display='none'; }, 500);
@@ -1289,7 +1297,8 @@ async function handleFiles(files) {
   document.getElementById('samedi').classList.add('active');
 
   await generateDeskComment(portfolio);
-  toast(`✓ Import + commentaire du desk générés`);
+  await renderSamedi();
+  toast(`✓ Import + analyse générés`);
 }
 
 function getWeekNum(){const d=new Date(),j=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));j.setUTCDate(j.getUTCDate()+4-(j.getUTCDay()||7));const y=new Date(Date.UTC(j.getUTCFullYear(),0,1));return Math.ceil((((j-y)/86400000)+1)/7);}
