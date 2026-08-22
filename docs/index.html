@@ -15,7 +15,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   .upload-z{border-color:rgba(255,255,255,0.15)}
   .upload-z:hover,.upload-z.drag{background:#1a2e1a;border-color:#3B6D11}
   .flt{color:#888;border-color:rgba(255,255,255,0.15)}
-  td{border-color:rgba(255,255,255,0.05)}a
+  td{border-color:rgba(255,255,255,0.05)}
   th{border-color:rgba(255,255,255,0.1);color:#888}
   tr:hover td{background:rgba(255,255,255,0.03)}
   select,input{background:#1c1c1e;color:#f0f0f0;border-color:#333}
@@ -505,8 +505,9 @@ async function callClaude(system, user, maxTokens) {
   });
   if(!r.ok){const t=await r.text();console.error('callClaude erreur '+r.status+':',t);throw new Error('API erreur '+r.status);}
   const d=await r.json();
+  if(d.error){console.error('Claude error:',d.error);throw new Error('Claude: '+d.error.message);}
   const txt=(d.content||[]).find(b=>b.type==='text')?.text||'';
-  console.log('Claude response ('+maxTokens+' max):',txt.slice(0,200));
+  console.log('Claude FULL response ('+maxTokens+' max tokens, stop:'+d.stop_reason+'):\n'+txt);
   return txt;
 }
 
