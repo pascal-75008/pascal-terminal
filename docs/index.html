@@ -15,7 +15,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   .upload-z{border-color:rgba(255,255,255,0.15)}
   .upload-z:hover,.upload-z.drag{background:#1a2e1a;border-color:#3B6D11}
   .flt{color:#888;border-color:rgba(255,255,255,0.15)}
-  td{border-color:rgba(255,255,255,0.05)}
+  td{border-color:rgba(255,255,255,0.05)}a
   th{border-color:rgba(255,255,255,0.1);color:#888}
   tr:hover td{background:rgba(255,255,255,0.03)}
   select,input{background:#1c1c1e;color:#f0f0f0;border-color:#333}
@@ -421,146 +421,93 @@ async function generateDeskComment(portfolio) {
   if (!deskBox) return;
 
   const positions = portfolio.positions || [];
-  const top15 = [...positions].sort((a,b) => (b.value_eur||0)-(a.value_eur||0)).slice(0,15);
-  const mvPlus = positions.filter(p => p.pv_pct > 20).map(p => p.name + ' (+' + p.pv_pct?.toFixed(1) + '%)').join(', ');
-  const mvMoins = positions.filter(p => p.pv_pct < -20).map(p => p.name + ' (' + p.pv_pct?.toFixed(1) + '%)').join(', ');
-  const today = new Date().toLocaleDateString('fr-FR', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+  const top15 = [...positions].sort((a,b)=>(b.value_eur||0)-(a.value_eur||0)).slice(0,15);
+  const mvPlus = positions.filter(p=>p.pv_pct>20).map(p=>p.name+' (+'+p.pv_pct?.toFixed(1)+'%)').join(', ');
+  const mvMoins = positions.filter(p=>p.pv_pct<-20).map(p=>p.name+' ('+p.pv_pct?.toFixed(1)+'%)').join(', ');
+  const today = new Date().toLocaleDateString('fr-FR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   const histCtx = await buildHistoricalContext();
-  const topTickers = top15.slice(0,8).map(p => p.name.split(' ')[0]).join(', ');
-  const portfolioText = top15.map(p =>
-    p.name + ' (' + p.broker + '): ' +
-    (p.qty ? p.qty + ' titres' : '') +
-    (p.price ? ' @ ' + p.price?.toFixed(2) : '') +
-    ' = ' + (p.value_eur ? Math.round(p.value_eur).toLocaleString('fr-FR') + 'EUR' : '?') +
-    ' | PV/MV: ' + (p.pv_pct != null ? (p.pv_pct>=0?'+':'') + p.pv_pct?.toFixed(1) + '%' : '?') +
-    ' | Sem: ' + (p.week_chg != null && p.week_chg !== 0 ? (p.week_chg>=0?'+':'') + p.week_chg?.toFixed(1) + '%' : '-')
+  const topTickers = top15.slice(0,6).map(p=>p.name.split(' ')[0]).join(', ');
+  const portfolioText = top15.map(p=>
+    p.name+'('+p.broker+'): '+(p.value_eur?Math.round(p.value_eur)+'EUR':'?')+
+    ' PV/MV:'+(p.pv_pct!=null?(p.pv_pct>=0?'+':'')+p.pv_pct?.toFixed(1)+'%':'?')+
+    ' Sem:'+(p.week_chg&&p.week_chg!==0?(p.week_chg>=0?'+':'')+p.week_chg?.toFixed(1)+'%':'-')
   ).join('\n');
 
-  const portfolioSummary = [
-    'Date: ' + today,
-    'Total: ' + Math.round(portfolio.total_value_eur||0).toLocaleString('fr-FR') + 'EUR',
-    'PV/MV: ' + (portfolio.total_pv_eur>=0?'+':'') + Math.round(portfolio.total_pv_eur||0).toLocaleString('fr-FR') + 'EUR (' + (portfolio.total_pv_pct>=0?'+':'') + (portfolio.total_pv_pct||0).toFixed(1) + '%)',
-    mvPlus ? 'Fortes PV: ' + mvPlus : '',
-    mvMoins ? 'Fortes MV: ' + mvMoins : '',
-    '',
-    '15 principales positions:',
-    portfolioText
-  ].filter(l => l !== '').join('\n');
+  const regles = 'PEA Boursorama=aucune fiscalite avant retrait. Ne jamais vendre pour raison fiscale. Carmat/CNIM radies=invendables. Pascal=investisseur LT, accepte MV des annees si these intacte. Ne jamais vendre sur seule base MV: EssilorLuxottica, Capgemini, Dassault, Alstom, SMCP, Clariane, Edenred, Orange, Pernod Ricard. Linxea PER: 700EUR Echiquier AI + 500EUR Amundi MSCI IT + 400EUR R-co Conv + 400EUR Robeco Smart Energy mensuel.';
 
-  // Regles communes aux deux appels
-  const regles = 'REGLE PEA (Boursorama) : AUCUNE fiscalite avant retrait. Ne JAMAIS vendre pour raison fiscale. Carmat/CNIM radies invendables. Cristallisation MV uniquement IB avant 31/12. PHILOSOPHIE : Pascal investisseur LT, accepte MV des annees si these intacte. Ne JAMAIS vendre sur seule base MV. Positions a NE PAS vendre malgre MV : EssilorLuxottica, Capgemini, Dassault, Alstom, SMCP, Clariane, Edenred, Orange, Pernod Ricard. Linxea PER : 700EUR Echiquier AI + 500EUR Amundi MSCI IT + 400EUR R-co Conv + 400EUR Robeco Smart Energy mensuel.';
+  const ptf = 'Date:'+today+'\nTotal:'+Math.round(portfolio.total_value_eur||0)+'EUR PV/MV:'+(portfolio.total_pv_eur>=0?'+':'')+Math.round(portfolio.total_pv_eur||0)+'EUR\n'+(mvPlus?'PV>20%:'+mvPlus+'\n':'')+(mvMoins?'MV<-20%:'+mvMoins+'\n':'')+portfolioText+(histCtx?'\n'+histCtx:'');
 
   try {
-    // ── PHASE 1 : Collecte donnees marche ─────────────────────────────────
-    deskBox.innerHTML = '<div class="desk-streaming"><span class="spinner"></span>Etape 1/3 - Collecte actualite marches...<span class="cursor"></span></div>';
-    let marketContext = '';
+    // PHASE 1 : news marche
+    deskBox.innerHTML='<div class="desk-streaming"><span class="spinner"></span>Etape 1/3 - Collecte marches...<span class="cursor"></span></div>';
+    let mkt='';
     try {
-      const r1 = await fetch(WORKER_URL + 'fetch-market-news', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ tickers: topTickers })
-      });
-      if (r1.ok) {
-        const d1 = await r1.json();
-        if (d1.quotes && Object.keys(d1.quotes).length > 0) {
-          marketContext += 'COURS:\n';
-          for (const [t,q] of Object.entries(d1.quotes)) marketContext += t+': '+q.price+'$ ('+q.weekChg+')\n';
-        }
-        if (d1.news && d1.news.length > 0) {
-          marketContext += 'NEWS:\n' + d1.news.slice(0,15).map(n => '- '+n).join('\n');
-        }
-      }
-    } catch(e) { console.warn('Marche indispo:', e.message); }
+      const rm=await fetch(WORKER_URL+'fetch-market-news',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tickers:topTickers})});
+      if(rm.ok){const dm=await rm.json();if(dm.quotes){for(const[t,q]of Object.entries(dm.quotes))mkt+=t+':'+q.price+'$('+q.weekChg+')\n';}if(dm.news)mkt+=dm.news.slice(0,10).join('\n');}
+    }catch(e){console.warn('mkt err',e.message);}
 
-    // ── PHASE 2 : Analyse macro + resume (appel court) ────────────────────
-    deskBox.innerHTML = '<div class="desk-streaming"><span class="spinner"></span>Etape 2/3 - Analyse macro...<span class="cursor"></span></div>';
+    // PHASE 2 : macro + resume (appel tres court)
+    deskBox.innerHTML='<div class="desk-streaming"><span class="spinner"></span>Etape 2/3 - Analyse macro...<span class="cursor"></span></div>';
+    const p2=await callClaude(
+      'Reponds UNIQUEMENT avec du JSON valide, sans aucun texte avant ou apres. Structure exacte:\n{"orientation_marche":"MIXTE","niveau_risque":"MODERE","resume":"texte","contexte_macro":"texte","alertes":[{"type":"info","titre":"texte","detail":"texte"}],"suivi_preco":"texte"}',
+      'Marche:\n'+(mkt||'N/A')+'\n\nPortefeuille:\n'+ptf+'\n\nRegles:'+regles+'\n\nGenere le JSON.',
+      2000
+    );
+    let part1={};
+    if(p2){try{let c=p2.replace(/```json|```/g,'').trim();const fb=c.indexOf('{'),lb=c.lastIndexOf('}');if(fb!==-1&&lb!==-1)c=c.slice(fb,lb+1);part1=JSON.parse(c);}catch(e){console.warn('Part1 invalide:',p2.slice(0,300));}}
 
-    const sys2 = 'Tu es le desk de Pascal Terminal. ' + regles + '\n\nReponds UNIQUEMENT avec ce JSON (sans markdown) - sois TRES concis (max 300 cars par champ texte):\n{"orientation_marche":"RISK_ON|RISK_OFF|MIXTE","niveau_risque":"FAIBLE|MODERE|ELEVE|EXTREME","resume":"max 300 cars","contexte_macro":"max 400 cars","alertes":[{"type":"danger|success|warning|info","titre":"court","detail":"max 200 cars"}],"suivi_preco":"max 300 cars"}';
-    const usr2 = (marketContext ? 'MARCHES:\n' + marketContext + '\n\n' : '') + portfolioSummary + (histCtx ? '\n\n' + histCtx : '');
+    // PHASE 3 : actions + recos (appel tres court)
+    deskBox.innerHTML='<div class="desk-streaming"><span class="spinner"></span>Etape 3/3 - Actions et recommandations...<span class="cursor"></span></div>';
+    const p3=await callClaude(
+      'Reponds UNIQUEMENT avec du JSON valide, sans aucun texte avant ou apres. Structure exacte:\n{"actions_samedi_matin":[{"priorite":1,"type":"SURVEILLER","nom":"NOM","courtier":"IB","rationale":"texte","prix_cible":"100$","stop_loss":"90$"}],"top_screener_ct":[{"nom":"NOM","ticker":"TKR","theme":"IA","prix":"100$","cible_ct":"120$","rationale":"texte","momentum_score":70}],"top_screener_lt":[{"nom":"NOM","ticker":"TKR","theme":"IA","these_retraite":"texte","montant_suggere":1000}],"recos_ct":["texte"],"recos_mt":["texte"],"recos_lt":["texte"]}',
+      'Portefeuille:\n'+ptf+'\nContexte:'+(part1.contexte_macro||'').slice(0,200)+'\nMarche:\n'+(mkt||'N/A').slice(0,400)+'\nRegles:'+regles+'\n\nGenere max 4 actions, 2 screeners CT, 2 LT, 3 recos par horizon. 1 SHORT sur IB si justifie.',
+      3000
+    );
+    let part2={};
+    if(p3){try{let c=p3.replace(/```json|```/g,'').trim();const fb=c.indexOf('{'),lb=c.lastIndexOf('}');if(fb!==-1&&lb!==-1)c=c.slice(fb,lb+1);part2=JSON.parse(c);}catch(e){console.warn('Part2 invalide:',p3.slice(0,300));}}
 
-    const r2 = await fetch(WORKER_URL, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 2000, system: sys2, messages: [{role:'user', content: usr2}] })
-    });
-    if (!r2.ok) throw new Error('Appel macro erreur ' + r2.status);
-    const d2 = await r2.json();
-    const raw2 = (d2.content||[]).find(b=>b.type==='text')?.text || '';
-    let part1 = {};
-    try {
-      let c2 = raw2.replace(/```json|```/g,'').trim();
-      const fb=c2.indexOf('{'), lb=c2.lastIndexOf('}');
-      if(fb!==-1&&lb!==-1) c2=c2.slice(fb,lb+1);
-      part1 = JSON.parse(c2);
-    } catch(e) { console.warn('Part1 JSON invalide:', raw2.slice(0,200)); }
-
-    // ── PHASE 3 : Actions + opportunites (appel court) ────────────────────
-    deskBox.innerHTML = '<div class="desk-streaming"><span class="spinner"></span>Etape 3/3 - Actions et opportunites...<span class="cursor"></span></div>';
-
-    const sys3 = 'Tu es le desk de Pascal Terminal. ' + regles + '\n\nReponds UNIQUEMENT avec ce JSON (sans markdown) - sois TRES concis (max 120 cars par champ texte):\n{"actions_samedi_matin":[{"priorite":1,"type":"VENTE|ACHAT_CT|ACHAT_LT|ALLEGER|SURVEILLER|SHORT","nom":"...","courtier":"Boursorama|IB|Linxea","rationale":"max 120 cars","montant_suggere":1000,"prix_cible":"250$","stop_loss":"230$"}],"top_screener_ct":[{"nom":"...","ticker":"...","theme":"...","prix":"...","cible_ct":"...","rationale":"max 100 cars","momentum_score":75}],"top_screener_lt":[{"nom":"...","ticker":"...","theme":"...","these_retraite":"max 100 cars","montant_suggere":2000}],"recos_ct":["max 100 cars"],"recos_mt":["max 100 cars"],"recos_lt":["max 100 cars"]}';
-    const usr3 = portfolioSummary + '\n\nContexte semaine: ' + (part1.contexte_macro||'').slice(0,300) + (marketContext ? '\n\nMarches:\n' + marketContext.slice(0,500) : '') + '\n\nGenere max 4 actions prioritaires, 2 screeners CT, 2 screeners LT, 3 recos par horizon. Inclure 1 idee SHORT sur IB si justifiee.';
-
-    const r3 = await fetch(WORKER_URL, {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 3000, system: sys3, messages: [{role:'user', content: usr3}] })
-    });
-    if (!r3.ok) throw new Error('Appel actions erreur ' + r3.status);
-    const d3 = await r3.json();
-    const raw3 = (d3.content||[]).find(b=>b.type==='text')?.text || '';
-    let part2 = {};
-    try {
-      let c3 = raw3.replace(/```json|```/g,'').trim();
-      const fb=c3.indexOf('{'), lb=c3.lastIndexOf('}');
-      if(fb!==-1&&lb!==-1) c3=c3.slice(fb,lb+1);
-      part2 = JSON.parse(c3);
-    } catch(e) { console.warn('Part2 JSON invalide:', raw3.slice(0,200)); }
-
-    // ── Fusion des deux parties ───────────────────────────────────────────
-    const desk = {
-      orientation_marche: part1.orientation_marche || 'MIXTE',
-      niveau_risque: part1.niveau_risque || 'MODERE',
-      resume: part1.resume || '',
-      contexte_macro: part1.contexte_macro || '',
-      alertes: part1.alertes || [],
-      suivi_preco: part1.suivi_preco || '',
-      actions_samedi_matin: part2.actions_samedi_matin || [],
-      top_screener_ct: part2.top_screener_ct || [],
-      top_screener_lt: part2.top_screener_lt || [],
-      recos_ct: part2.recos_ct || [],
-      recos_mt: part2.recos_mt || [],
-      recos_lt: part2.recos_lt || []
+    const desk={
+      orientation_marche:part1.orientation_marche||'MIXTE',
+      niveau_risque:part1.niveau_risque||'MODERE',
+      resume:part1.resume||'',
+      contexte_macro:part1.contexte_macro||'',
+      alertes:part1.alertes||[],
+      suivi_preco:part1.suivi_preco||'',
+      actions_samedi_matin:part2.actions_samedi_matin||[],
+      top_screener_ct:part2.top_screener_ct||[],
+      top_screener_lt:part2.top_screener_lt||[],
+      recos_ct:part2.recos_ct||[],
+      recos_mt:part2.recos_mt||[],
+      recos_lt:part2.recos_lt||[]
     };
 
-    if (!desk.resume) throw new Error('Analyse vide - reessayez');
+    if(!desk.resume&&!desk.contexte_macro) throw new Error('Analyse vide - verifiez la console');
 
     renderDeskComment(desk);
-
-    if (DATA) {
-      DATA.analysis = DATA.analysis || {};
-      DATA.analysis.actions_samedi_matin = desk.actions_samedi_matin;
-      DATA.analysis.top_screener_ct = desk.top_screener_ct;
-      DATA.analysis.top_screener_lt = desk.top_screener_lt;
-      if (desk.orientation_marche) DATA.analysis.orientation_marche = desk.orientation_marche;
-      if (desk.niveau_risque) DATA.analysis.niveau_risque = desk.niveau_risque;
-      renderOpps();
-    }
+    if(DATA){DATA.analysis=DATA.analysis||{};DATA.analysis.actions_samedi_matin=desk.actions_samedi_matin;DATA.analysis.top_screener_ct=desk.top_screener_ct;DATA.analysis.top_screener_lt=desk.top_screener_lt;if(desk.orientation_marche)DATA.analysis.orientation_marche=desk.orientation_marche;if(desk.niveau_risque)DATA.analysis.niveau_risque=desk.niveau_risque;renderOpps();}
     renderActionsPrioritaires(desk.actions_samedi_matin);
-
-    const today_iso = new Date().toISOString().slice(0,10);
-    await saveDeskEntry({
-      date: today_iso, total_eur: portfolio.total_value_eur,
-      resume: desk.resume, contexte_macro: desk.contexte_macro,
-      alertes: desk.alertes, actions_samedi_matin: desk.actions_samedi_matin,
-      top_screener_ct: desk.top_screener_ct, top_screener_lt: desk.top_screener_lt,
-      recos_ct: desk.recos_ct, recos_mt: desk.recos_mt, recos_lt: desk.recos_lt,
-      suivi_preco: desk.suivi_preco, generated_at: new Date().toISOString()
-    });
-
+    const today_iso=new Date().toISOString().slice(0,10);
+    await saveDeskEntry({date:today_iso,total_eur:portfolio.total_value_eur,resume:desk.resume,contexte_macro:desk.contexte_macro,alertes:desk.alertes,actions_samedi_matin:desk.actions_samedi_matin,top_screener_ct:desk.top_screener_ct,top_screener_lt:desk.top_screener_lt,recos_ct:desk.recos_ct,recos_mt:desk.recos_mt,recos_lt:desk.recos_lt,suivi_preco:desk.suivi_preco,generated_at:new Date().toISOString()});
     await renderDeskHistory();
-    toast('Analyse complete (3 etapes)');
+    toast('Analyse complete');
 
-  } catch(e) {
-    deskBox.innerHTML = '<div style="color:#A32D2D;font-size:13px;padding:10px">Erreur : ' + e.message + '<br><span style="font-size:12px;color:#888">Voir la console pour le detail.</span></div>';
-    console.error('Desk generation error:', e);
+  }catch(e){
+    deskBox.innerHTML='<div style="color:#A32D2D;font-size:13px;padding:10px">Erreur : '+e.message+'<br><span style="font-size:12px;color:#888">Voir la console pour le detail.</span></div>';
+    console.error('Desk generation error:',e);
   }
+}
+
+// Helper : appel Claude via Worker
+async function callClaude(system, user, maxTokens) {
+  const r = await fetch(WORKER_URL, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:CLAUDE_MODEL, max_tokens:maxTokens, system:system, messages:[{role:'user',content:user}]})
+  });
+  if(!r.ok){const t=await r.text();console.error('callClaude erreur '+r.status+':',t);throw new Error('API erreur '+r.status);}
+  const d=await r.json();
+  const txt=(d.content||[]).find(b=>b.type==='text')?.text||'';
+  console.log('Claude response ('+maxTokens+' max):',txt.slice(0,200));
+  return txt;
 }
 
 
