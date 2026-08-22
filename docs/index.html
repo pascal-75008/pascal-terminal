@@ -398,7 +398,7 @@ async function clearDeskHistory() {
 async function buildHistoricalContext() {
   const history = await loadDeskHistory();
   if (!history.length) return '';
-  const recent = history.slice(-8);
+  const recent = history.slice(-4);
   // Nettoyer les caractères spéciaux qui pourraient corrompre le payload JSON
   const clean = s => (s || '').replace(/[\u2018\u2019\u201A\u201B]/g, "'").replace(/[\u201C\u201D\u201E\u201F]/g, '"').replace(/[\u2013\u2014]/g, '-').replace(/[\r\n]+/g, ' ').trim();
   let ctx = '\n=== HISTORIQUE DES ANALYSES PRECEDENTES ===\n';
@@ -521,8 +521,40 @@ async function generateDeskComment(portfolio) {
       if (fb !== -1 && lb !== -1) clean = clean.slice(fb, lb+1);
       desk = JSON.parse(clean);
     } catch(e) {
-      console.error('Parsing JSON echoue. Reponse brute:', rawText.slice(0,1000));
-      throw new Error('Reponse invalide du modele (voir console)');
+      // JSON tronqué : tentative de récupération partielle
+      console.warn('JSON tronque, tentative de recuperation partielle...');
+      try {
+        // Extraire les champs texte simples avec regex
+        const extract = (key) => {
+          const m = rawText.match(new RegExp('"' + key + '"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)'));
+          return m ? m[1].replace(/\\n/g,' ').replace(/\\"/g,'"') : '';
+        };
+        const extractArr = (key) => {
+          const m = rawText.match(new RegExp('"' + key + '"\\s*:\\s*\\[([^\\]]*?)(?:\\]|$)'));
+          if (!m) return [];
+          const items = m[1].match(/"((?:[^"\\\\]|\\\\.)*)"/g);
+          return items ? items.map(s => s.slice(1,-1)) : [];
+        };
+        desk = {
+          orientation_marche: extract('orientation_marche') || 'MIXTE',
+          niveau_risque: extract('niveau_risque') || 'MODERE',
+          resume: extract('resume').slice(0, 500) || 'Analyse partielle — JSON tronqué.',
+          contexte_macro: extract('contexte_macro').slice(0, 800) || '',
+          alertes: [],
+          actions_samedi_matin: [],
+          top_screener_ct: [],
+          top_screener_lt: [],
+          recos_ct: extractArr('recos_ct'),
+          recos_mt: extractArr('recos_mt'),
+          recos_lt: extractArr('recos_lt'),
+          suivi_preco: extract('suivi_preco').slice(0, 500) || ''
+        };
+        if (!desk.resume || desk.resume.length < 10) throw new Error('Recuperation insuffisante');
+        toast('⚠ Analyse partielle — JSON tronqué. Cliquez Regénérer.');
+      } catch(e2) {
+        console.error('Parsing JSON echoue. Reponse brute:', rawText.slice(0,1000));
+        throw new Error('Reponse invalide du modele (voir console)');
+      }
     }
 
     renderDeskComment(desk);
