@@ -21,7 +21,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   select,input{background:#1c1c1e;color:#f0f0f0;border-color:#333}
   .desk-card{background:#0d1117!important;border-color:rgba(255,255,255,0.07)!important}
   .desk-section{border-color:rgba(255,255,255,0.07)!important}
-  .alert-danger{background:#1a0a0a!important}a
+  .alert-danger{background:#1a0a0a!important}
   .alert-success{background:#0a1a0a!important}
   .alert-warning{background:#1a130a!important}
   .alert-info{background:#0a111a!important}
@@ -1039,9 +1039,8 @@ function renderHistorique() {
   const dates = Object.keys(h).sort().reverse();
   const sel1 = document.getElementById('hist-date1');
   const sel2 = document.getElementById('hist-date2');
-  const cur1 = sel1.value, cur2 = sel2.value;
-  // sel1 = date de référence (ancienne) = ordre chronologique inversé → fin de liste
-  // sel2 = date de comparaison (récente) = début de liste
+  const cur1 = sel1.value || dates[dates.length-1]; // ancienne par défaut
+  const cur2 = sel2.value || dates[0];              // récente par défaut
   sel1.innerHTML = dates.map(d=>`<option value="${d}" ${d===cur1?'selected':''}>${d}</option>`).join('');
   sel2.innerHTML = dates.map(d=>`<option value="${d}" ${d===cur2?'selected':''}>${d}</option>`).join('');
   if (!dates.length) {
@@ -1049,9 +1048,8 @@ function renderHistorique() {
     document.getElementById('hist-summary').innerHTML = '';
     return;
   }
-  // d1 = date ancienne (référence), d2 = date récente (comparaison)
-  const d1 = sel1.value || dates[dates.length-1]; // plus ancienne par défaut
-  const d2 = sel2.value || dates[0];              // plus récente par défaut
+  const d1 = cur1;
+  const d2 = cur2;
   sel1.value = d1; sel2.value = d2;
   const snap1 = h[d1]?.snap || {};
   const snap2 = h[d2]?.snap || {};
