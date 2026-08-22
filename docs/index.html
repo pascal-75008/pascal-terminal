@@ -427,7 +427,6 @@ async function generateDeskComment(portfolio) {
   const today = new Date().toLocaleDateString('fr-FR', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
   const histCtx = await buildHistoricalContext();
   const topTickers = top15.slice(0,8).map(p => p.name.split(' ')[0]).join(', ');
-
   const portfolioText = top15.map(p =>
     p.name + ' (' + p.broker + '): ' +
     (p.qty ? p.qty + ' titres' : '') +
@@ -437,139 +436,113 @@ async function generateDeskComment(portfolio) {
     ' | Sem: ' + (p.week_chg != null && p.week_chg !== 0 ? (p.week_chg>=0?'+':'') + p.week_chg?.toFixed(1) + '%' : '-')
   ).join('\n');
 
-  try {
-    // ── PHASE 1 : Collecte donnees marche via Worker ───────────────────────
-    deskBox.innerHTML = '<div class="desk-streaming"><span class="spinner"></span>Etape 1/2 - Collecte actualite marches...<span class="cursor"></span></div>';
+  const portfolioSummary = [
+    'Date: ' + today,
+    'Total: ' + Math.round(portfolio.total_value_eur||0).toLocaleString('fr-FR') + 'EUR',
+    'PV/MV: ' + (portfolio.total_pv_eur>=0?'+':'') + Math.round(portfolio.total_pv_eur||0).toLocaleString('fr-FR') + 'EUR (' + (portfolio.total_pv_pct>=0?'+':'') + (portfolio.total_pv_pct||0).toFixed(1) + '%)',
+    mvPlus ? 'Fortes PV: ' + mvPlus : '',
+    mvMoins ? 'Fortes MV: ' + mvMoins : '',
+    '',
+    '15 principales positions:',
+    portfolioText
+  ].filter(l => l !== '').join('\n');
 
+  // Regles communes aux deux appels
+  const regles = 'REGLE PEA (Boursorama) : AUCUNE fiscalite avant retrait. Ne JAMAIS vendre pour raison fiscale. Carmat/CNIM radies invendables. Cristallisation MV uniquement IB avant 31/12. PHILOSOPHIE : Pascal investisseur LT, accepte MV des annees si these intacte. Ne JAMAIS vendre sur seule base MV. Positions a NE PAS vendre malgre MV : EssilorLuxottica, Capgemini, Dassault, Alstom, SMCP, Clariane, Edenred, Orange, Pernod Ricard. Linxea PER : 700EUR Echiquier AI + 500EUR Amundi MSCI IT + 400EUR R-co Conv + 400EUR Robeco Smart Energy mensuel.';
+
+  try {
+    // ── PHASE 1 : Collecte donnees marche ─────────────────────────────────
+    deskBox.innerHTML = '<div class="desk-streaming"><span class="spinner"></span>Etape 1/3 - Collecte actualite marches...<span class="cursor"></span></div>';
     let marketContext = '';
     try {
       const r1 = await fetch(WORKER_URL + 'fetch-market-news', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ tickers: topTickers })
       });
       if (r1.ok) {
         const d1 = await r1.json();
         if (d1.quotes && Object.keys(d1.quotes).length > 0) {
-          marketContext += 'COURS EN TEMPS REEL:\n';
-          for (const [t, q] of Object.entries(d1.quotes)) {
-            marketContext += t + ': ' + q.price + '$ (' + q.weekChg + ' sur 5j)\n';
-          }
+          marketContext += 'COURS:\n';
+          for (const [t,q] of Object.entries(d1.quotes)) marketContext += t+': '+q.price+'$ ('+q.weekChg+')\n';
         }
         if (d1.news && d1.news.length > 0) {
-          marketContext += '\nACTUALITE MARCHES:\n';
-          d1.news.forEach(function(n) { marketContext += '- ' + n + '\n'; });
+          marketContext += 'NEWS:\n' + d1.news.slice(0,15).map(n => '- '+n).join('\n');
         }
       }
-    } catch(e) {
-      console.warn('Donnees marche indisponibles:', e.message);
-      marketContext = 'Donnees marche indisponibles cette semaine.';
-    }
+    } catch(e) { console.warn('Marche indispo:', e.message); }
 
-    // ── PHASE 2 : Analyse Claude ──────────────────────────────────────────
-    deskBox.innerHTML = '<div class="desk-streaming"><span class="spinner"></span>Etape 2/2 - Generation analyse...<span class="cursor"></span></div>';
+    // ── PHASE 2 : Analyse macro + resume (appel court) ────────────────────
+    deskBox.innerHTML = '<div class="desk-streaming"><span class="spinner"></span>Etape 2/3 - Analyse macro...<span class="cursor"></span></div>';
 
-    const systemPrompt = 'Tu es le desk analyse de Pascal Terminal, broker IA personnel de Pascal, investisseur parisien prive. Tu combines la rigueur d\'un analyste sell-side senior et la vision macro d\'un gerant de fonds global.\n\nREGLE FISCALE PEA (compte Boursorama) : positions en PEA = AUCUNE fiscalite avant retrait. Ne JAMAIS recommander vente pour raison fiscale sur Boursorama. Carmat et CNIM radiees (invendables). Cristallisation MV avant 31/12 = uniquement IB (CTO).\n\nPHILOSOPHIE D\'INVESTISSEMENT - REGLE ABSOLUE : Pascal est un investisseur long terme. Il accepte de conserver des positions en forte moins-value pendant des ANNEES si la these fondamentale reste intacte. Il ne vend JAMAIS sur la seule base d\'une baisse de cours ou d\'une MV en pourcentage. Une MV de -17%, -30%, -50% sur une entreprise fondamentalement solide N\'EST PAS une raison de vendre. Ne JAMAIS utiliser la MV comme argument de vente. Ne JAMAIS dire "liberer du capital" comme justification de vente sur une position en MV. La seule raison valide de vendre une position est : la these d\'investissement est DEFINITIVEMENT et STRUCTURELLEMENT cassee (ex: faillite confirmee, disruption irreversible du modele economique, perte definitive du leadership). Exemples de positions a NE PAS recommander de vendre malgre la MV : EssilorLuxottica (leadership optique mondial intact), Capgemini (ESN solide), Dassault Systemes (PLM leader), Alstom (infrastructure ferroviaire), SMCP, Clariane, Edenred, Orange, Pernod Ricard. Titres reellement sans issue (radies ou modele casse) : Carmat (liquide, radie), CNIM (liquide, radie), Virgin Galactic (radie).\n\nCONTEXTE LINXEA PER : Pascal verse 2000EUR/mois repartis ainsi : Echiquier Artificial Intelligence B (LU1819480192) 35% = 700EUR, Amundi MSCI World IT (LU0533033667) 25% = 500EUR, R-co Convertibles Europe (FR0007009139) 20% = 400EUR, Robeco Smart Energy D-EUR (LU2145461757) 20% = 400EUR. Ofi Precious Metals : stock ~10K EUR gele, zero nouveaux flux. Horizon retraite 10-15 ans.\n\nChaque recommandation doit citer un catalyseur precis, un horizon, un prix cible chiffre et un stop documente. Inclure au moins une idee SHORT sur IB (CTO) si justifiee.\n\nJSON final obligatoire - structure exacte sans markdown:\n{"orientation_marche":"RISK_ON|RISK_OFF|MIXTE","niveau_risque":"FAIBLE|MODERE|ELEVE|EXTREME","resume":"...","contexte_macro":"...","alertes":[{"type":"danger","titre":"...","detail":"..."}],"actions_samedi_matin":[{"priorite":1,"type":"VENTE","nom":"...","courtier":"Boursorama","rationale":"...","montant_suggere":1000,"prix_cible":"250$","stop_loss":"230$"}],"top_screener_ct":[{"nom":"...","ticker":"...","theme":"...","prix":"...","cible_ct":"...","rationale":"...","momentum_score":75}],"top_screener_lt":[{"nom":"...","ticker":"...","theme":"...","these_retraite":"...","montant_suggere":2000}],"recos_ct":["..."],"recos_mt":["..."],"recos_lt":["..."],"suivi_preco":"..."}\n\nCONTRAINTES STRICTES DE LONGUEUR (obligatoires pour eviter toute troncature) : resume max 400 caracteres, contexte_macro max 600 caracteres, chaque detail alerte max 250 caracteres, chaque rationale action max 150 caracteres, chaque reco CT/MT/LT max 120 caracteres, suivi_preco max 400 caracteres. Sois dense et percutant. max 5 alertes, max 5 actions, max 3 screeners CT et LT. JSON brut commencant par { finissant par }.';
-
-    // Construire le contenu utilisateur sans template literals complexes
-    const userLines = [
-      'Nous sommes le ' + today + '.',
-      '',
-      marketContext ? 'DONNEES MARCHE EN TEMPS REEL:\n' + marketContext : '',
-      'PORTEFEUILLE DE PASCAL - 15 principales positions:',
-      portfolioText,
-      '',
-      'Total: ' + Math.round(portfolio.total_value_eur||0).toLocaleString('fr-FR') + 'EUR',
-      'PV/MV: ' + (portfolio.total_pv_eur>=0?'+':'') + Math.round(portfolio.total_pv_eur||0).toLocaleString('fr-FR') + 'EUR (' + (portfolio.total_pv_pct>=0?'+':'') + (portfolio.total_pv_pct||0).toFixed(1) + '%)',
-      mvPlus ? 'Fortes PV: ' + mvPlus : '',
-      mvMoins ? 'Fortes MV: ' + mvMoins : '',
-      histCtx ? '\n' + histCtx : '',
-      '',
-      'Genere le commentaire du desk complet en JSON.'
-    ];
-    const userContent = userLines.filter(function(l) { return l !== ''; }).join('\n');
-
-    // Payload propre sans interpolation complexe
-    const payload = {
-      model: CLAUDE_MODEL,
-      max_tokens: 8000,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userContent }]
-    };
+    const sys2 = 'Tu es le desk de Pascal Terminal. ' + regles + '\n\nReponds UNIQUEMENT avec ce JSON (sans markdown) - sois TRES concis (max 300 cars par champ texte):\n{"orientation_marche":"RISK_ON|RISK_OFF|MIXTE","niveau_risque":"FAIBLE|MODERE|ELEVE|EXTREME","resume":"max 300 cars","contexte_macro":"max 400 cars","alertes":[{"type":"danger|success|warning|info","titre":"court","detail":"max 200 cars"}],"suivi_preco":"max 300 cars"}';
+    const usr2 = (marketContext ? 'MARCHES:\n' + marketContext + '\n\n' : '') + portfolioSummary + (histCtx ? '\n\n' + histCtx : '');
 
     const r2 = await fetch(WORKER_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 2000, system: sys2, messages: [{role:'user', content: usr2}] })
     });
-
-    if (!r2.ok) {
-      const errText = await r2.text();
-      console.error('Erreur API raw:', errText);
-      throw new Error('Erreur API ' + r2.status + ' - voir console');
-    }
+    if (!r2.ok) throw new Error('Appel macro erreur ' + r2.status);
     const d2 = await r2.json();
-    const rawText = (d2.content || []).find(function(b) { return b.type === 'text'; })?.text || '';
-
-    if (!rawText) throw new Error('Reponse vide du modele');
-
-    let desk;
+    const raw2 = (d2.content||[]).find(b=>b.type==='text')?.text || '';
+    let part1 = {};
     try {
-      let clean = rawText.replace(/```json|```/g, '').trim();
-      const fb = clean.indexOf('{');
-      const lb = clean.lastIndexOf('}');
-      if (fb !== -1 && lb !== -1) clean = clean.slice(fb, lb+1);
-      desk = JSON.parse(clean);
-    } catch(e) {
-      // JSON tronqué : tentative de récupération partielle
-      console.warn('JSON tronque, tentative de recuperation partielle...');
-      try {
-        // Extraire les champs texte simples avec regex
-        const extract = (key) => {
-          const m = rawText.match(new RegExp('"' + key + '"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)'));
-          return m ? m[1].replace(/\\n/g,' ').replace(/\\"/g,'"') : '';
-        };
-        const extractArr = (key) => {
-          const m = rawText.match(new RegExp('"' + key + '"\\s*:\\s*\\[([^\\]]*?)(?:\\]|$)'));
-          if (!m) return [];
-          const items = m[1].match(/"((?:[^"\\\\]|\\\\.)*)"/g);
-          return items ? items.map(s => s.slice(1,-1)) : [];
-        };
-        desk = {
-          orientation_marche: extract('orientation_marche') || 'MIXTE',
-          niveau_risque: extract('niveau_risque') || 'MODERE',
-          resume: extract('resume').slice(0, 500) || 'Analyse partielle — JSON tronqué.',
-          contexte_macro: extract('contexte_macro').slice(0, 800) || '',
-          alertes: [],
-          actions_samedi_matin: [],
-          top_screener_ct: [],
-          top_screener_lt: [],
-          recos_ct: extractArr('recos_ct'),
-          recos_mt: extractArr('recos_mt'),
-          recos_lt: extractArr('recos_lt'),
-          suivi_preco: extract('suivi_preco').slice(0, 500) || ''
-        };
-        if (!desk.resume || desk.resume.length < 10) throw new Error('Recuperation insuffisante');
-        toast('⚠ Analyse partielle — JSON tronqué. Cliquez Regénérer.');
-      } catch(e2) {
-        console.error('Parsing JSON echoue. Reponse brute:', rawText.slice(0,1000));
-        throw new Error('Reponse invalide du modele (voir console)');
-      }
-    }
+      let c2 = raw2.replace(/```json|```/g,'').trim();
+      const fb=c2.indexOf('{'), lb=c2.lastIndexOf('}');
+      if(fb!==-1&&lb!==-1) c2=c2.slice(fb,lb+1);
+      part1 = JSON.parse(c2);
+    } catch(e) { console.warn('Part1 JSON invalide:', raw2.slice(0,200)); }
+
+    // ── PHASE 3 : Actions + opportunites (appel court) ────────────────────
+    deskBox.innerHTML = '<div class="desk-streaming"><span class="spinner"></span>Etape 3/3 - Actions et opportunites...<span class="cursor"></span></div>';
+
+    const sys3 = 'Tu es le desk de Pascal Terminal. ' + regles + '\n\nReponds UNIQUEMENT avec ce JSON (sans markdown) - sois TRES concis (max 120 cars par champ texte):\n{"actions_samedi_matin":[{"priorite":1,"type":"VENTE|ACHAT_CT|ACHAT_LT|ALLEGER|SURVEILLER|SHORT","nom":"...","courtier":"Boursorama|IB|Linxea","rationale":"max 120 cars","montant_suggere":1000,"prix_cible":"250$","stop_loss":"230$"}],"top_screener_ct":[{"nom":"...","ticker":"...","theme":"...","prix":"...","cible_ct":"...","rationale":"max 100 cars","momentum_score":75}],"top_screener_lt":[{"nom":"...","ticker":"...","theme":"...","these_retraite":"max 100 cars","montant_suggere":2000}],"recos_ct":["max 100 cars"],"recos_mt":["max 100 cars"],"recos_lt":["max 100 cars"]}';
+    const usr3 = portfolioSummary + '\n\nContexte semaine: ' + (part1.contexte_macro||'').slice(0,300) + (marketContext ? '\n\nMarches:\n' + marketContext.slice(0,500) : '') + '\n\nGenere max 4 actions prioritaires, 2 screeners CT, 2 screeners LT, 3 recos par horizon. Inclure 1 idee SHORT sur IB si justifiee.';
+
+    const r3 = await fetch(WORKER_URL, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 3000, system: sys3, messages: [{role:'user', content: usr3}] })
+    });
+    if (!r3.ok) throw new Error('Appel actions erreur ' + r3.status);
+    const d3 = await r3.json();
+    const raw3 = (d3.content||[]).find(b=>b.type==='text')?.text || '';
+    let part2 = {};
+    try {
+      let c3 = raw3.replace(/```json|```/g,'').trim();
+      const fb=c3.indexOf('{'), lb=c3.lastIndexOf('}');
+      if(fb!==-1&&lb!==-1) c3=c3.slice(fb,lb+1);
+      part2 = JSON.parse(c3);
+    } catch(e) { console.warn('Part2 JSON invalide:', raw3.slice(0,200)); }
+
+    // ── Fusion des deux parties ───────────────────────────────────────────
+    const desk = {
+      orientation_marche: part1.orientation_marche || 'MIXTE',
+      niveau_risque: part1.niveau_risque || 'MODERE',
+      resume: part1.resume || '',
+      contexte_macro: part1.contexte_macro || '',
+      alertes: part1.alertes || [],
+      suivi_preco: part1.suivi_preco || '',
+      actions_samedi_matin: part2.actions_samedi_matin || [],
+      top_screener_ct: part2.top_screener_ct || [],
+      top_screener_lt: part2.top_screener_lt || [],
+      recos_ct: part2.recos_ct || [],
+      recos_mt: part2.recos_mt || [],
+      recos_lt: part2.recos_lt || []
+    };
+
+    if (!desk.resume) throw new Error('Analyse vide - reessayez');
 
     renderDeskComment(desk);
 
     if (DATA) {
       DATA.analysis = DATA.analysis || {};
-      DATA.analysis.actions_samedi_matin = desk.actions_samedi_matin || [];
-      DATA.analysis.top_screener_ct = desk.top_screener_ct || [];
-      DATA.analysis.top_screener_lt = desk.top_screener_lt || [];
+      DATA.analysis.actions_samedi_matin = desk.actions_samedi_matin;
+      DATA.analysis.top_screener_ct = desk.top_screener_ct;
+      DATA.analysis.top_screener_lt = desk.top_screener_lt;
       if (desk.orientation_marche) DATA.analysis.orientation_marche = desk.orientation_marche;
       if (desk.niveau_risque) DATA.analysis.niveau_risque = desk.niveau_risque;
-      if (desk.macro) DATA.macro = desk.macro;
       renderOpps();
     }
-    renderActionsPrioritaires(desk.actions_samedi_matin || []);
+    renderActionsPrioritaires(desk.actions_samedi_matin);
 
     const today_iso = new Date().toISOString().slice(0,10);
     await saveDeskEntry({
@@ -582,13 +555,14 @@ async function generateDeskComment(portfolio) {
     });
 
     await renderDeskHistory();
-    toast('Analyse complete avec donnees marche');
+    toast('Analyse complete (3 etapes)');
 
   } catch(e) {
     deskBox.innerHTML = '<div style="color:#A32D2D;font-size:13px;padding:10px">Erreur : ' + e.message + '<br><span style="font-size:12px;color:#888">Voir la console pour le detail.</span></div>';
     console.error('Desk generation error:', e);
   }
 }
+
 
 
 function renderDeskComment(desk) {
