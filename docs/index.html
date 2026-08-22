@@ -21,7 +21,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   select,input{background:#1c1c1e;color:#f0f0f0;border-color:#333}
   .desk-card{background:#0d1117!important;border-color:rgba(255,255,255,0.07)!important}
   .desk-section{border-color:rgba(255,255,255,0.07)!important}
-  .alert-danger{background:#1a0a0a!important}
+  .alert-danger{background:#1a0a0a!important}a
   .alert-success{background:#0a1a0a!important}
   .alert-warning{background:#1a130a!important}
   .alert-info{background:#0a111a!important}
@@ -449,22 +449,33 @@ async function generateDeskComment(portfolio) {
     // PHASE 2 : macro + resume (appel tres court)
     deskBox.innerHTML='<div class="desk-streaming"><span class="spinner"></span>Etape 2/3 - Analyse macro...<span class="cursor"></span></div>';
     const p2=await callClaude(
-      'Reponds UNIQUEMENT avec du JSON valide, sans aucun texte avant ou apres. Structure exacte:\n{"orientation_marche":"MIXTE","niveau_risque":"MODERE","resume":"texte","contexte_macro":"texte","alertes":[{"type":"info","titre":"texte","detail":"texte"}],"suivi_preco":"texte"}',
-      'Marche:\n'+(mkt||'N/A').slice(0,300)+'\n\nPortefeuille:\n'+ptf.slice(0,800)+'\n\nRegles:'+regles+'\n\nGenere le JSON. Sois concis: max 200 cars par champ texte.',
+      'Tu reponds UNIQUEMENT avec du JSON brut. INTERDIT : balises markdown, texte avant ou apres le JSON. Ta reponse doit commencer par { et finir par }. Structure:\n{"orientation_marche":"MIXTE","niveau_risque":"MODERE","resume":"texte","contexte_macro":"texte","alertes":[{"type":"info","titre":"texte","detail":"texte"}],"suivi_preco":"texte"}',
+      'Marche:\n'+(mkt||'N/A').slice(0,300)+'\n\nPortefeuille:\n'+ptf.slice(0,800)+'\n\nRegles:'+regles+'\n\nGenere le JSON. Max 200 cars par champ texte.',
       3000
     );
     let part1={};
-    if(p2){try{let c=p2.replace(/```json|```/g,'').trim();const fb=c.indexOf('{'),lb=c.lastIndexOf('}');if(fb!==-1&&lb!==-1)c=c.slice(fb,lb+1);part1=JSON.parse(c);}catch(e){console.warn('Part1 invalide:',p2.slice(0,300));}}
+    if(p2){try{
+      // Nettoyer toutes les variantes de balises markdown
+      let c=p2.replace(/```json\s*/gi,'').replace(/```\s*/g,'').replace(/^\s+|\s+$/g,'');
+      const fb=c.indexOf('{'),lb=c.lastIndexOf('}');
+      if(fb!==-1&&lb!==-1)c=c.slice(fb,lb+1);
+      part1=JSON.parse(c);
+    }catch(e){console.warn('Part1 invalide:',p2.slice(0,300));}}
 
     // PHASE 3 : actions + recos (appel tres court)
     deskBox.innerHTML='<div class="desk-streaming"><span class="spinner"></span>Etape 3/3 - Actions et recommandations...<span class="cursor"></span></div>';
     const p3=await callClaude(
-      'Reponds UNIQUEMENT avec du JSON valide, sans aucun texte avant ou apres. Structure exacte:\n{"actions_samedi_matin":[{"priorite":1,"type":"SURVEILLER","nom":"NOM","courtier":"IB","rationale":"texte","prix_cible":"100$","stop_loss":"90$"}],"top_screener_ct":[{"nom":"NOM","ticker":"TKR","theme":"IA","prix":"100$","cible_ct":"120$","rationale":"texte","momentum_score":70}],"top_screener_lt":[{"nom":"NOM","ticker":"TKR","theme":"IA","these_retraite":"texte","montant_suggere":1000}],"recos_ct":["texte"],"recos_mt":["texte"],"recos_lt":["texte"]}',
+      'Tu reponds UNIQUEMENT avec du JSON brut. INTERDIT : balises markdown, texte avant ou apres. Ta reponse doit commencer par { et finir par }. Structure:\n{"actions_samedi_matin":[{"priorite":1,"type":"SURVEILLER","nom":"NOM","courtier":"IB","rationale":"texte","prix_cible":"100$","stop_loss":"90$"}],"top_screener_ct":[{"nom":"NOM","ticker":"TKR","theme":"IA","prix":"100$","cible_ct":"120$","rationale":"texte","momentum_score":70}],"top_screener_lt":[{"nom":"NOM","ticker":"TKR","theme":"IA","these_retraite":"texte","montant_suggere":1000}],"recos_ct":["texte"],"recos_mt":["texte"],"recos_lt":["texte"]}',
       'Portefeuille:\n'+ptf+'\nContexte:'+(part1.contexte_macro||'').slice(0,200)+'\nMarche:\n'+(mkt||'N/A').slice(0,400)+'\nRegles:'+regles+'\n\nGenere max 4 actions, 2 screeners CT, 2 LT, 3 recos par horizon. 1 SHORT sur IB si justifie.',
       3000
     );
     let part2={};
-    if(p3){try{let c=p3.replace(/```json|```/g,'').trim();const fb=c.indexOf('{'),lb=c.lastIndexOf('}');if(fb!==-1&&lb!==-1)c=c.slice(fb,lb+1);part2=JSON.parse(c);}catch(e){console.warn('Part2 invalide:',p3.slice(0,300));}}
+    if(p3){try{
+      let c=p3.replace(/```json\s*/gi,'').replace(/```\s*/g,'').replace(/^\s+|\s+$/g,'');
+      const fb=c.indexOf('{'),lb=c.lastIndexOf('}');
+      if(fb!==-1&&lb!==-1)c=c.slice(fb,lb+1);
+      part2=JSON.parse(c);
+    }catch(e){console.warn('Part2 invalide:',p3.slice(0,300));}}
 
     const desk={
       orientation_marche:part1.orientation_marche||'MIXTE',
