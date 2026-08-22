@@ -398,7 +398,7 @@ async function clearDeskHistory() {
 async function buildHistoricalContext() {
   const history = await loadDeskHistory();
   if (!history.length) return '';
-  const recent = history.slice(-4);
+  const recent = history.slice(-2);
   // Nettoyer les caractères spéciaux qui pourraient corrompre le payload JSON
   const clean = s => (s || '').replace(/[\u2018\u2019\u201A\u201B]/g, "'").replace(/[\u201C\u201D\u201E\u201F]/g, '"').replace(/[\u2013\u2014]/g, '-').replace(/[\r\n]+/g, ' ').trim();
   let ctx = '\n=== HISTORIQUE DES ANALYSES PRECEDENTES ===\n';
@@ -450,8 +450,8 @@ async function generateDeskComment(portfolio) {
     deskBox.innerHTML='<div class="desk-streaming"><span class="spinner"></span>Etape 2/3 - Analyse macro...<span class="cursor"></span></div>';
     const p2=await callClaude(
       'Reponds UNIQUEMENT avec du JSON valide, sans aucun texte avant ou apres. Structure exacte:\n{"orientation_marche":"MIXTE","niveau_risque":"MODERE","resume":"texte","contexte_macro":"texte","alertes":[{"type":"info","titre":"texte","detail":"texte"}],"suivi_preco":"texte"}',
-      'Marche:\n'+(mkt||'N/A')+'\n\nPortefeuille:\n'+ptf+'\n\nRegles:'+regles+'\n\nGenere le JSON.',
-      2000
+      'Marche:\n'+(mkt||'N/A').slice(0,300)+'\n\nPortefeuille:\n'+ptf.slice(0,800)+'\n\nRegles:'+regles+'\n\nGenere le JSON. Sois concis: max 200 cars par champ texte.',
+      3000
     );
     let part1={};
     if(p2){try{let c=p2.replace(/```json|```/g,'').trim();const fb=c.indexOf('{'),lb=c.lastIndexOf('}');if(fb!==-1&&lb!==-1)c=c.slice(fb,lb+1);part1=JSON.parse(c);}catch(e){console.warn('Part1 invalide:',p2.slice(0,300));}}
