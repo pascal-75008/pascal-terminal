@@ -276,6 +276,14 @@ tr:hover td{background:rgba(0,0,0,.02)}
       Les cours sont pris directement depuis tes exports — 100% fiables. 
       La variation hebdomadaire est calculée automatiquement en comparant avec l'import précédent.
     </p>
+    <div style="background:#f8f4e8;border:0.5px solid #854F0B;border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:12px">
+      <strong style="color:#854F0B">📅 Réimporter pour corriger l'historique ?</strong>
+      <div style="margin-top:8px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <label style="color:#888">Date à corriger :</label>
+        <input type="date" id="reimport-date" style="padding:4px 8px;border:0.5px solid rgba(0,0,0,0.2);border-radius:6px;font-size:12px">
+        <span style="color:#888;font-size:11px">Laisse vide pour importer à la date du jour</span>
+      </div>
+    </div>
     <div class="upload-z" id="dropzone" onclick="document.getElementById('fileInput').click()">
       <input type="file" id="fileInput" multiple accept=".xlsx,.xls,.csv" onchange="handleFiles(this.files)">
       <h3>Glisse tes fichiers ici ou clique</h3>
@@ -419,7 +427,7 @@ async function generateDeskComment(portfolio) {
     // PHASE 2 : macro + resume (appel tres court)
     deskBox.innerHTML='<div class="desk-streaming"><span class="spinner"></span>Etape 2/3 - Analyse macro...<span class="cursor"></span></div>';
     const p2=await callClaude(
-      'Tu reponds UNIQUEMENT avec du JSON brut. INTERDIT : balises markdown, texte avant ou apres le JSON. Ta reponse doit commencer par { et finir par }. Structure:\n{"orientation_marche":"MIXTE","niveau_risque":"MODERE","resume":"texte","contexte_macro":"texte","alertes":[{"type":"info","titre":"texte","detail":"texte"}],"analyse_critique":"texte 200-300 cars: vision non-consensuelle basee sur Dalio/Roubini/scientifiques/philosophes sur 2-3 themes majeurs du portefeuille","suivi_preco":"texte"}',
+      'Tu reponds UNIQUEMENT avec du JSON brut. INTERDIT : balises markdown, texte avant ou apres le JSON. Ta reponse doit commencer par { et finir par }. Structure:\n{"orientation_marche":"MIXTE","niveau_risque":"MODERE","resume":"texte","contexte_macro":"texte","alertes":[{"type":"info","titre":"texte","detail":"texte"}],"analyse_critique":{"synthese":"150-200 cars: vision non-consensuelle globale basee sur economistes/scientifiques/philosophes","gagnants":[{"nom":"Nom exact du titre ou acteur","raison":"80-100 cars: pourquoi cet acteur capturera la valeur, avec reference a une pensee non-consensuelle"}],"perdants":[{"nom":"Nom exact du titre ou acteur","raison":"80-100 cars: pourquoi cet acteur risque de perdre de la valeur malgre le consensus positif"}]},"suivi_preco":"texte"}',
       'Marche:\n'+(mkt||'N/A').slice(0,300)+'\n\nPortefeuille:\n'+ptf.slice(0,800)+'\n\nRegles:'+regles+'\n\nGenere le JSON. Max 200 cars par champ texte.',
       3000
     );
@@ -697,7 +705,24 @@ function renderDeskComment(desk) {
 
   let html = `<div style="font-size:13px;color:#555;line-height:1.8;margin-bottom:12px"><strong style="color:#1a1a1a">${desk.resume || ''}</strong></div>`;
   if (desk.contexte_macro) html += `<div style="font-size:13px;color:#666;line-height:1.8;margin-bottom:10px">${desk.contexte_macro}</div>`;
-  if (desk.analyse_critique) html += `<div style="background:#f8f4e8;border-left:3px solid #854F0B;border-radius:6px;padding:10px 14px;margin-bottom:10px"><div style="font-size:11px;font-weight:500;color:#854F0B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">🔭 Analyse critique — vision non-consensuelle</div><div style="font-size:13px;color:#555;line-height:1.7">${desk.analyse_critique}</div></div>`;
+  if (desk.analyse_critique) {
+    const ac = typeof desk.analyse_critique === 'string' ? {synthese: desk.analyse_critique, gagnants:[], perdants:[]} : desk.analyse_critique;
+    let acHtml = `<div style="background:#f8f4e8;border-left:3px solid #854F0B;border-radius:6px;padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:11px;font-weight:500;color:#854F0B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">🔭 Analyse critique — vision non-consensuelle</div>
+      <div style="font-size:13px;color:#555;line-height:1.7;margin-bottom:${(ac.gagnants?.length||ac.perdants?.length)?'10px':'0'}">${ac.synthese||ac}</div>`;
+    if (ac.gagnants && ac.gagnants.length) {
+      acHtml += `<div style="margin-bottom:8px"><div style="font-size:11px;font-weight:500;color:#3B6D11;margin-bottom:5px">▲ GAGNANTS PROBABLES</div>`;
+      ac.gagnants.forEach(g => { acHtml += `<div style="display:flex;gap:8px;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.05)"><span style="font-size:12px;font-weight:500;color:#1a1a1a;min-width:120px;flex-shrink:0">${g.nom}</span><span style="font-size:12px;color:#555">${g.raison}</span></div>`; });
+      acHtml += `</div>`;
+    }
+    if (ac.perdants && ac.perdants.length) {
+      acHtml += `<div><div style="font-size:11px;font-weight:500;color:#A32D2D;margin-bottom:5px">▼ PERDANTS PROBABLES</div>`;
+      ac.perdants.forEach(p => { acHtml += `<div style="display:flex;gap:8px;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,0.05)"><span style="font-size:12px;font-weight:500;color:#1a1a1a;min-width:120px;flex-shrink:0">${p.nom}</span><span style="font-size:12px;color:#555">${p.raison}</span></div>`; });
+      acHtml += `</div>`;
+    }
+    acHtml += `</div>`;
+    html += acHtml;
+  }
   deskBox.innerHTML = html;
 
   if (desk.alertes && desk.alertes.length && recoBox) {
@@ -756,6 +781,12 @@ async function renderDeskHistory() {
 function loadHistory() { try { return JSON.parse(localStorage.getItem(HIST_KEY) || '{}'); } catch(e) { return {}; } }
 function saveHistory(h) { try { localStorage.setItem(HIST_KEY, JSON.stringify(h)); } catch(e) { toast('⚠ Historique plein'); } }
 function saveSnapshot(date, positions) {
+  // Permettre la réimportation pour une date passée (correction historique)
+  if (window._reimportDate) {
+    date = window._reimportDate;
+    window._reimportDate = null;
+    console.log('Reimport correctif pour date:', date);
+  }
   const h = loadHistory();
   const snap = {};
   for (const p of positions) {
@@ -1382,6 +1413,11 @@ async function handleFiles(files) {
   const total_eur=allPositions.reduce((s,p)=>s+(p.value_eur||0),0);
   const total_pv=allPositions.reduce((s,p)=>s+(p.pv_eur||0),0);
   const sorted=allPositions.sort((a,b)=>(b.value_eur||0)-(a.value_eur||0));
+  const reimportDateEl = document.getElementById('reimport-date');
+  if (reimportDateEl && reimportDateEl.value) {
+    window._reimportDate = reimportDateEl.value;
+    log(`Correction historique pour le ${reimportDateEl.value}`);
+  }
   const today=new Date().toISOString().slice(0,10);
 
   // Récupérer le snapshot précédent AVANT d'écraser avec le nouveau
