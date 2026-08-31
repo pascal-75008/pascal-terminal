@@ -158,6 +158,19 @@ tr:hover td{background:rgba(0,0,0,.02)}
 .btn-primary:hover{opacity:.8}
 .btn-danger{padding:3px 9px;background:transparent;color:#A32D2D;border:0.5px solid #A32D2D;border-radius:5px;font-size:11px;cursor:pointer}
 @media(prefers-color-scheme:dark){.cession-form input,.cession-form select{background:#1c1c1e;color:#f0f0f0;border-color:#333}.cession-form{background:#1c1c1e}}
+
+/* Evolution portefeuille */
+.evo-perf-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+@media(max-width:700px){.evo-perf-grid{grid-template-columns:repeat(2,1fr)}}
+.evo-kpi{border-radius:10px;padding:12px 14px}
+.evo-kpi .lbl{font-size:11px;color:rgba(255,255,255,0.7);margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
+.evo-kpi .val{font-size:18px;font-weight:500;color:#fff}
+.evo-kpi .sub{font-size:11px;color:rgba(255,255,255,0.6);margin-top:2px}
+.achat-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:0.5px solid rgba(0,0,0,0.06)}
+.achat-row:last-child{border-bottom:none}
+.achat-badge{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500;white-space:nowrap}
+.achat-badge-new{background:#E1F5EE;color:#065040}
+.achat-badge-renf{background:#E6F1FB;color:#185FA5}
 </style>
 </head>
 <body>
@@ -178,10 +191,8 @@ tr:hover td{background:rgba(0,0,0,.02)}
   <button class="nav-btn active" onclick="showTab('samedi',this)">Plan du samedi</button>
   <button class="nav-btn" onclick="showTab('opportunites',this)">Opportunités</button>
   <button class="nav-btn" onclick="showTab('portefeuille',this)">Portefeuille</button>
-  <button class="nav-btn" onclick="showTab('macro',this)">Macro</button>
+  <button class="nav-btn" onclick="showTab('evolution',this)">Evolution portefeuille</button>
   <button class="nav-btn" onclick="showTab('historique',this)">Historique</button>
-  <button class="nav-btn" onclick="showTab('desk-history',this)">Mémoire du desk</button>
-  <button class="nav-btn" onclick="showTab('cessions',this)">Cessions réalisées</button>
   <button class="nav-btn" onclick="showTab('import',this)">Importer</button>
 </div>
 
@@ -225,8 +236,21 @@ tr:hover td{background:rgba(0,0,0,.02)}
   </div>
 </div>
 
-<div id="macro" class="section">
-  <div id="macro-content"><div style="padding:40px;text-align:center;color:#888">Chargement...</div></div>
+<div id="evolution" class="section">
+  <div class="card">
+    <div class="card-hd">Evolution du portefeuille dans le temps</div>
+    <div style="font-size:12px;color:#888;margin-bottom:14px">
+      La correction Linxea tient compte des versements mensuels de 2 000€ pour isoler la performance pure.
+    </div>
+    <div id="evolution-chart-container" style="position:relative;width:100%;height:320px;margin-bottom:20px">
+      <canvas id="evolution-chart"></canvas>
+    </div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px" id="evolution-legend"></div>
+  </div>
+  <div class="card">
+    <div class="card-hd">Performance par portefeuille</div>
+    <div id="evolution-table"></div>
+  </div>
 </div>
 
 <div id="historique" class="section">
@@ -241,62 +265,6 @@ tr:hover td{background:rgba(0,0,0,.02)}
     <div id="hist-summary" style="margin-bottom:14px"></div>
   </div>
   <div id="hist-content"></div>
-</div>
-
-<div id="desk-history" class="section">
-  <div class="desk-card">
-    <div class="desk-header">
-      <div>
-        <div class="desk-title">Mémoire du desk</div>
-        <div class="desk-date">Historique complet des analyses — Claude apprend de ses préconisations passées</div>
-      </div>
-      <button class="btn-regen" onclick="clearDeskHistory()" style="color:#A32D2D;border-color:#A32D2D">🗑 Effacer mémoire</button>
-    </div>
-    <div id="desk-history-content"><div style="padding:30px;text-align:center;color:#888;font-size:13px">Aucune analyse sauvegardée.<br>Importez vos fichiers pour générer le premier commentaire.</div></div>
-  </div>
-</div>
-
-<div id="cessions" class="section">
-  <div id="cessions-totaux" class="cession-totaux"></div>
-
-  <!-- Formulaire saisie manuelle -->
-  <div class="card">
-    <div class="card-hd">Ajouter une cession manuellement</div>
-    <div class="cession-form">
-      <div><label>Titre</label><input type="text" id="cess-nom" placeholder="Ex: ASML HLDG"></div>
-      <div><label>Compte</label><select id="cess-compte"><option value="PEA">PEA (Boursorama)</option><option value="CTO-IB">CTO (IB)</option><option value="CTO-BSO">CTO (Boursorama)</option><option value="DEGIRO">DeGiro</option></select></div>
-      <div><label>Date</label><input type="date" id="cess-date"></div>
-      <div><label>Quantité</label><input type="number" id="cess-qty" placeholder="Ex: 5" min="0" step="any"></div>
-      <div><label>PRU (€)</label><input type="number" id="cess-pru" placeholder="Ex: 1058" min="0" step="any"></div>
-      <div><label>Prix de vente (€)</label><input type="number" id="cess-prix" placeholder="Ex: 1400" min="0" step="any"></div>
-      <div style="padding-top:1px"><button class="btn-primary" onclick="ajouterCessionManuelle()">+ Ajouter</button></div>
-    </div>
-  </div>
-
-  <!-- Tableau des cessions -->
-  <div class="card" style="padding:0;overflow:hidden">
-    <div class="tscroll">
-    <table>
-      <thead><tr>
-        <th onclick="sortCessions('date')">Date <span id="sc-date"></span></th>
-        <th onclick="sortCessions('nom')">Titre <span id="sc-nom"></span></th>
-        <th onclick="sortCessions('compte')">Compte <span id="sc-compte"></span></th>
-        <th style="text-align:right" onclick="sortCessions('qty')">Qté <span id="sc-qty"></span></th>
-        <th style="text-align:right" onclick="sortCessions('pru')">PRU <span id="sc-pru"></span></th>
-        <th style="text-align:right" onclick="sortCessions('prix_vente')">Prix vente <span id="sc-prix_vente"></span></th>
-        <th style="text-align:right" onclick="sortCessions('produit')">Produit € <span id="sc-produit"></span></th>
-        <th style="text-align:right" onclick="sortCessions('pv_eur')">PV/MV € <span id="sc-pv_eur"></span></th>
-        <th style="text-align:right" onclick="sortCessions('pv_pct')">PV/MV % <span id="sc-pv_pct"></span></th>
-        <th>Source</th>
-        <th></th>
-      </tr></thead>
-      <tbody id="cessions-body"><tr><td colspan="11" style="text-align:center;padding:20px;color:#888">Aucune cession enregistrée pour l'année en cours.</td></tr></tbody>
-    </table>
-    </div>
-  </div>
-  <div style="display:flex;justify-content:flex-end;margin-top:8px">
-    <button class="btn-danger" onclick="exportCessionsCSV()">⬇ Exporter CSV</button>
-  </div>
 </div>
 
 <div id="import" class="section">
@@ -330,6 +298,7 @@ tr:hover td{background:rgba(0,0,0,.02)}
 <div class="toast" id="toast"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script>
 // ── CONFIG ────────────────────────────────────────────────────────────────────
 const CLAUDE_MODEL = 'claude-sonnet-4-6';
@@ -391,8 +360,7 @@ async function clearDeskHistory() {
     } catch(e) {}
     _deskHistoryCache = [];
     toast('Mémoire du desk effacée');
-    renderDeskHistory();
-  }
+      }
 }
 
 async function buildHistoricalContext() {
@@ -433,7 +401,7 @@ async function generateDeskComment(portfolio) {
     ' Sem:'+(p.week_chg&&p.week_chg!==0?(p.week_chg>=0?'+':'')+p.week_chg?.toFixed(1)+'%':'-')
   ).join('\n');
 
-  const regles = 'PEA Boursorama=aucune fiscalite avant retrait. Ne jamais vendre pour raison fiscale. Carmat/CNIM radies=invendables. Pascal=investisseur LT, accepte MV des annees si these intacte. Ne jamais vendre sur seule base MV: EssilorLuxottica, Capgemini, Dassault, Alstom, SMCP, Clariane, Edenred, Orange, Pernod Ricard. Linxea PER: 700EUR Echiquier AI + 500EUR Amundi MSCI IT + 400EUR R-co Conv + 400EUR Robeco Smart Energy mensuel.';
+  const regles = 'PEA Boursorama=aucune fiscalite avant retrait. Ne jamais vendre pour raison fiscale. Carmat/CNIM radies=invendables. Pascal=investisseur LT, accepte MV des annees si these intacte. Ne jamais vendre sur seule base MV: EssilorLuxottica, Capgemini, Dassault, Alstom, SMCP, Clariane, Edenred, Orange, Pernod Ricard. Linxea PER: 700EUR Echiquier AI + 500EUR Amundi MSCI IT + 400EUR R-co Conv + 400EUR Robeco Smart Energy mensuel. PHILOSOPHIE DANALYSE CRITIQUE: Ne jamais suivre le consensus de marche aveuglément - il integre deja les prix et se trompe souvent aux points de retournement. Pour chaque recommandation dachat ou de vente long terme, integrer: (1) Les visions structurelles des grands economistes et investisseurs qui pensent au-dela du consensus (ex: Dalio sur les cycles de dette, Roubini sur les risques systemiques, Buffett sur la valeur intrinseque, Soros sur la reflexivite, les theses heterodoxes qui anticipent des ruptures) ; (2) Les predictions des scientifiques et mathematiciens sur les transitions technologiques (IA, energie, biotech, quantique) et leurs impacts economiques reels a 5-10 ans, meme si contre-intuitifs ; (3) Les signaux geopolitiques et philosophiques qui dessinent un futur different de la tendance actuelle. Etre capable de dire pourquoi une these populaire est peut-etre fausse. Privilegier la pensee critique et les scenarios non-consensus quand ils sont documentes.'
 
   const ptf = 'Date:'+today+'\nTotal:'+Math.round(portfolio.total_value_eur||0)+'EUR PV/MV:'+(portfolio.total_pv_eur>=0?'+':'')+Math.round(portfolio.total_pv_eur||0)+'EUR\n'+(mvPlus?'PV>20%:'+mvPlus+'\n':'')+(mvMoins?'MV<-20%:'+mvMoins+'\n':'')+portfolioText+(histCtx?'\n'+histCtx:'');
 
@@ -499,12 +467,204 @@ async function generateDeskComment(portfolio) {
     renderActionsPrioritaires(desk.actions_samedi_matin);
     const today_iso=new Date().toISOString().slice(0,10);
     await saveDeskEntry({date:today_iso,total_eur:portfolio.total_value_eur,resume:desk.resume,contexte_macro:desk.contexte_macro,alertes:desk.alertes,actions_samedi_matin:desk.actions_samedi_matin,top_screener_ct:desk.top_screener_ct,top_screener_lt:desk.top_screener_lt,recos_ct:desk.recos_ct,recos_mt:desk.recos_mt,recos_lt:desk.recos_lt,suivi_preco:desk.suivi_preco,generated_at:new Date().toISOString()});
-    await renderDeskHistory();
-    toast('Analyse complete');
+        toast('Analyse complete');
 
   }catch(e){
     deskBox.innerHTML='<div style="color:#A32D2D;font-size:13px;padding:10px">Erreur : '+e.message+'<br><span style="font-size:12px;color:#888">Voir la console pour le detail.</span></div>';
     console.error('Desk generation error:',e);
+  }
+}
+
+// ── DETECTION DES ACHATS ──────────────────────────────────────────────────────
+function detecterAchats(prevSnap, currSnap) {
+  if (!prevSnap || !currSnap) return [];
+  const achats = [];
+  for (const key of Object.keys(currSnap)) {
+    const curr = currSnap[key];
+    const prev = prevSnap[key];
+    const [broker, nom] = key.split('|');
+    if (!prev) {
+      // Nouveau titre apparu cette semaine = achat
+      achats.push({ type: 'NOUVEAU', broker, nom, value_eur: curr.value_eur, price: curr.price, qty: curr.qty });
+    } else if (curr.qty && prev.qty && curr.qty > prev.qty) {
+      // Quantité augmentée = renforcement
+      const qtyAchetee = curr.qty - prev.qty;
+      achats.push({ type: 'RENFORCEMENT', broker, nom, qty_achetee: qtyAchetee, value_eur: curr.value_eur, price: curr.price });
+    }
+  }
+  return achats;
+}
+
+function renderAchats(achats) {
+  const box = document.getElementById('achats-semaine-box');
+  if (!box) return;
+  if (!achats || !achats.length) { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  const brokerLabel = b => b === 'boursorama' ? 'PEA Boursorama' : b === 'interactive_brokers' ? 'IB CTO' : b === 'linxea' ? 'Linxea PER' : b;
+  let html = achats.map(a => `<div class="achat-row">
+    <span class="achat-badge ${a.type==='NOUVEAU'?'achat-badge-new':'achat-badge-renf'}">${a.type==='NOUVEAU'?'NOUVEAU':'RENFORCEMENT'}</span>
+    <div style="flex:1">
+      <div style="font-size:13px;font-weight:500">${a.nom}</div>
+      <div style="font-size:12px;color:#888">${brokerLabel(a.broker)}${a.qty_achetee?' · +'+a.qty_achetee+' titres':''}${a.price?' · @ '+a.price?.toFixed(2)+'€':''}</div>
+    </div>
+    <div style="font-size:13px;font-weight:500;color:#065040">${a.value_eur?Math.round(a.value_eur).toLocaleString('fr-FR')+'€':''}</div>
+  </div>`).join('');
+  box.querySelector('.achat-liste').innerHTML = html;
+}
+
+// ── GRAPHIQUE EVOLUTION PORTEFEUILLE ─────────────────────────────────────────
+let evoChart = null;
+const LINXEA_APPORT_MENSUEL = 2000;
+
+function renderEvolution() {
+  const h = loadHistory();
+  const dates = Object.keys(h).sort();
+  if (dates.length < 2) {
+    document.getElementById('evolution-table').innerHTML = '<div style="color:#888;font-size:13px;text-align:center;padding:20px">Pas assez de données historiques.<br>L\'historique se construira semaine après semaine.</div>';
+    document.getElementById('evolution-legend').innerHTML = '';
+    return;
+  }
+
+  // Calculer les totaux par broker par date
+  const brokers = ['boursorama', 'interactive_brokers', 'linxea'];
+  const brokerColors = {
+    boursorama: { border: '#185FA5', bg: 'rgba(24,95,165,0.15)', label: 'Boursorama PEA' },
+    interactive_brokers: { border: '#065040', bg: 'rgba(6,80,64,0.15)', label: 'Interactive Brokers CTO' },
+    linxea: { border: '#854F0B', bg: 'rgba(133,79,11,0.15)', label: 'Linxea PER' },
+    total: { border: '#1a1a1a', bg: 'rgba(26,26,26,0.1)', label: 'Total portefeuille' }
+  };
+
+  const dataByBroker = {};
+  brokers.forEach(b => dataByBroker[b] = []);
+  const dataTotal = [];
+
+  // Calculer le nombre de semaines écoulées depuis le premier import pour Linxea
+  const firstDate = new Date(dates[0]);
+
+  dates.forEach(date => {
+    const snap = h[date]?.snap || {};
+    let totals = { boursorama: 0, interactive_brokers: 0, linxea: 0 };
+    for (const [key, val] of Object.entries(snap)) {
+      const broker = key.split('|')[0];
+      if (totals[broker] !== undefined) totals[broker] += val.value_eur || 0;
+    }
+
+    // Correction Linxea : soustraire les apports mensuels cumulés
+    const semaines = Math.round((new Date(date) - firstDate) / (7 * 24 * 3600 * 1000));
+    const moisEcoules = semaines / 4.33;
+    const apportsCumules = Math.round(moisEcoules * LINXEA_APPORT_MENSUEL);
+    const linxeaCorrige = totals.linxea - apportsCumules;
+
+    brokers.forEach(b => dataByBroker[b].push(Math.round(b === 'linxea' ? linxeaCorrige : totals[b])));
+    dataTotal.push(Math.round(Object.values(totals).reduce((s,v)=>s+v,0)));
+  });
+
+  // Formater les labels de dates
+  const labels = dates.map(d => {
+    const [y,m,j] = d.split('-');
+    return j+'/'+m+'/'+y.slice(2);
+  });
+
+  // Construire les datasets Chart.js
+  const datasets = [
+    ...brokers.map(b => ({
+      label: brokerColors[b].label,
+      data: dataByBroker[b],
+      borderColor: brokerColors[b].border,
+      backgroundColor: brokerColors[b].bg,
+      borderWidth: 2,
+      pointRadius: 3,
+      tension: 0.3,
+      fill: false
+    })),
+    {
+      label: 'Total portefeuille',
+      data: dataTotal,
+      borderColor: brokerColors.total.border,
+      backgroundColor: brokerColors.total.bg,
+      borderWidth: 2.5,
+      pointRadius: 4,
+      tension: 0.3,
+      fill: false,
+      borderDash: [5, 3]
+    }
+  ];
+
+  // Créer ou mettre à jour le graphique
+  const ctx = document.getElementById('evolution-chart');
+  if (!ctx) return;
+  if (evoChart) { evoChart.destroy(); evoChart = null; }
+  evoChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ctx.dataset.label + ': ' + Math.round(ctx.parsed.y).toLocaleString('fr-FR') + '€'
+          }
+        }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 11 }, maxTicksLimit: 10 } },
+        y: {
+          grid: { color: 'rgba(0,0,0,0.05)' },
+          ticks: { font: { size: 11 }, callback: v => Math.round(v/1000)+'k€' }
+        }
+      }
+    }
+  });
+
+  // Légende custom
+  const legend = document.getElementById('evolution-legend');
+  if (legend) {
+    legend.innerHTML = [...brokers, 'total'].map(b => {
+      const cfg = brokerColors[b];
+      const lastVal = b === 'total' ? dataTotal[dataTotal.length-1] : dataByBroker[b]?.[dataByBroker[b].length-1];
+      const firstVal = b === 'total' ? dataTotal[0] : dataByBroker[b]?.[0];
+      const perf = firstVal && firstVal !== 0 ? ((lastVal - firstVal) / Math.abs(firstVal) * 100).toFixed(1) : '0.0';
+      const perfColor = parseFloat(perf) >= 0 ? '#3B6D11' : '#A32D2D';
+      return `<div style="display:flex;align-items:center;gap:6px;font-size:12px">
+        <div style="width:16px;height:3px;background:${cfg.border};border-radius:2px;flex-shrink:0"></div>
+        <span style="color:#888">${cfg.label}</span>
+        <span style="font-weight:500">${Math.round(lastVal||0).toLocaleString('fr-FR')}€</span>
+        <span style="color:${perfColor}">(${parseFloat(perf)>=0?'+':''}${perf}%)</span>
+      </div>`;
+    }).join('');
+  }
+
+  // Tableau de performance
+  const tableEl = document.getElementById('evolution-table');
+  if (tableEl && dates.length >= 2) {
+    const lastDate = dates[dates.length-1];
+    const prevDate = dates[dates.length-2];
+    const rows = [...brokers, 'total'].map(b => {
+      const curr = b === 'total' ? dataTotal[dataTotal.length-1] : dataByBroker[b]?.[dataByBroker[b].length-1] || 0;
+      const prev = b === 'total' ? dataTotal[dataTotal.length-2] : dataByBroker[b]?.[dataByBroker[b].length-2] || 0;
+      const first = b === 'total' ? dataTotal[0] : dataByBroker[b]?.[0] || 0;
+      const semChg = curr - prev;
+      const totalChg = curr - first;
+      const semPct = prev ? (semChg/Math.abs(prev)*100).toFixed(1) : '0.0';
+      const totalPct = first ? (totalChg/Math.abs(first)*100).toFixed(1) : '0.0';
+      const cfg = brokerColors[b];
+      const note = b === 'linxea' ? ' <span style="font-size:10px;color:#888">(hors apports)</span>' : '';
+      return `<tr>
+        <td><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:50%;background:${cfg.border};display:inline-block"></span><strong>${cfg.label}</strong>${note}</span></td>
+        <td style="text-align:right;font-weight:500">${Math.round(curr).toLocaleString('fr-FR')}€</td>
+        <td style="text-align:right"><span class="${semChg>=0?'pos':'neg'}">${semChg>=0?'+':''}${Math.round(semChg).toLocaleString('fr-FR')}€ (${parseFloat(semPct)>=0?'+':''}${semPct}%)</span></td>
+        <td style="text-align:right"><span class="${totalChg>=0?'pos':'neg'}">${totalChg>=0?'+':''}${Math.round(totalChg).toLocaleString('fr-FR')}€ (${parseFloat(totalPct)>=0?'+':''}${totalPct}%)</span></td>
+      </tr>`;
+    });
+    tableEl.innerHTML = `<table><thead><tr>
+      <th>Portefeuille</th>
+      <th style="text-align:right">Valeur actuelle</th>
+      <th style="text-align:right">Évol. semaine</th>
+      <th style="text-align:right">Évol. depuis début</th>
+    </tr></thead><tbody>${rows.join('')}</tbody></table>`;
   }
 }
 
@@ -636,7 +796,7 @@ function showTab(id,btn) {
   document.getElementById(id).classList.add('active');
   btn.classList.add('active');
   if(id==='historique') renderHistorique();
-  if(id==='desk-history') renderDeskHistory();
+  if(id==='evolution') renderEvolution();
   if(id==='cessions') renderCessions();
 }
 
@@ -905,6 +1065,12 @@ async function renderSamedi() {
     <div class="kpi"><div class="lbl">Marché</div><div class="val" style="display:flex;gap:4px;flex-wrap:wrap;font-size:13px;padding-top:4px">${badge(a.orientation_marche||'?',orMap[a.orientation_marche]||'bg-gray')} ${badge(a.niveau_risque||'?',rlMap[a.niveau_risque]||'bg-amber')}</div></div>
   </div>`;
 
+  // Zone achats détectés cette semaine
+  html += `<div id="achats-semaine-box" class="card" style="display:none;border-left:3px solid #065040">
+    <div class="card-hd" style="color:#065040">🛒 Achats détectés cette semaine</div>
+    <div class="achat-liste"></div>
+  </div>`;
+
   html += `<div class="desk-card">
     <div class="desk-header">
       <div>
@@ -935,6 +1101,12 @@ async function renderSamedi() {
 
   document.getElementById('samedi-content').innerHTML = html;
   renderActionsPrioritaires(a.actions_samedi_matin||[]);
+
+  // Afficher les achats détectés
+  try {
+    const achatsStored = sessionStorage.getItem('achats_semaine');
+    if (achatsStored) renderAchats(JSON.parse(achatsStored));
+  } catch(e) {}
 
   const deskHistory = await loadDeskHistory();
   if (deskHistory.length) {
@@ -1221,8 +1393,14 @@ async function handleFiles(files) {
     currSnap[key] = { price: p.price, value_eur: p.value_eur, pru: p.pru, qty: p.qty };
   }
 
-  // Détecter automatiquement les cessions (silencieux, pas bloquant)
+  // Détecter automatiquement les cessions (silencieux)
   detecterCessions(prevSnap, currSnap, prevCashIB, currCashIB).catch(()=>{});
+
+  // Détecter les achats de la semaine
+  const achats = prevSnap ? detecterAchats(prevSnap, currSnap) : [];
+  if (achats.length) {
+    sessionStorage.setItem('achats_semaine', JSON.stringify(achats));
+  }
 
   const portfolio={
     positions:sorted, total_value_eur:Math.round(total_eur),
