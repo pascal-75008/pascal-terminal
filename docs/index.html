@@ -1032,7 +1032,6 @@ async function loadData() {
     updateTopbar();
     await renderSamedi();
     renderOpps();
-    renderMacro();
     renderPtf();
   } catch(e) {
     document.getElementById('samedi-content').innerHTML =
@@ -1440,7 +1439,7 @@ async function handleFiles(files) {
     <span style="font-weight:400;font-size:12px;color:#888">${withChg} variations calculées${withChg===0?' (premier import)':''}</span>
   </div>`;
 
-  updateTopbar(); renderOpps(); renderMacro(); renderPtf();
+  updateTopbar(); renderOpps(); renderPtf();
 
   fill.style.width='100%';
   setTimeout(() => { prog.style.display='none'; }, 500);
