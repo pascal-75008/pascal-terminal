@@ -211,8 +211,10 @@ tr:hover td{background:rgba(0,0,0,.02)}
     <div id="ptf-title" style="font-size:13px;font-weight:500">Portefeuille</div>
     <div class="filters" id="broker-filters">
       <button class="flt on" onclick="filterBroker('all',this)">Tous</button>
-      <button class="flt" onclick="filterBroker('boursorama',this)">Boursorama</button>
+      <button class="flt" onclick="filterBroker('boursorama_pea',this)">PEA</button>
+      <button class="flt" onclick="filterBroker('boursorama_cto',this)">CTO Boursorama</button>
       <button class="flt" onclick="filterBroker('interactive_brokers',this)">IB</button>
+      <button class="flt" onclick="filterBroker('degiro',this)">DeGiro</button>
       <button class="flt" onclick="filterBroker('linxea',this)">Linxea</button>
     </div>
   </div>
@@ -417,7 +419,7 @@ async function generateDeskComment(portfolio) {
     // PHASE 2 : macro + resume (appel tres court)
     deskBox.innerHTML='<div class="desk-streaming"><span class="spinner"></span>Etape 2/3 - Analyse macro...<span class="cursor"></span></div>';
     const p2=await callClaude(
-      'Tu reponds UNIQUEMENT avec du JSON brut. INTERDIT : balises markdown, texte avant ou apres le JSON. Ta reponse doit commencer par { et finir par }. Structure:\n{"orientation_marche":"MIXTE","niveau_risque":"MODERE","resume":"texte","contexte_macro":"texte","alertes":[{"type":"info","titre":"texte","detail":"texte"}],"suivi_preco":"texte"}',
+      'Tu reponds UNIQUEMENT avec du JSON brut. INTERDIT : balises markdown, texte avant ou apres le JSON. Ta reponse doit commencer par { et finir par }. Structure:\n{"orientation_marche":"MIXTE","niveau_risque":"MODERE","resume":"texte","contexte_macro":"texte","alertes":[{"type":"info","titre":"texte","detail":"texte"}],"analyse_critique":"texte 200-300 cars: vision non-consensuelle basee sur Dalio/Roubini/scientifiques/philosophes sur 2-3 themes majeurs du portefeuille","suivi_preco":"texte"}',
       'Marche:\n'+(mkt||'N/A').slice(0,300)+'\n\nPortefeuille:\n'+ptf.slice(0,800)+'\n\nRegles:'+regles+'\n\nGenere le JSON. Max 200 cars par champ texte.',
       3000
     );
@@ -451,6 +453,7 @@ async function generateDeskComment(portfolio) {
       resume:part1.resume||'',
       contexte_macro:part1.contexte_macro||'',
       alertes:part1.alertes||[],
+      analyse_critique:part1.analyse_critique||'',
       suivi_preco:part1.suivi_preco||'',
       actions_samedi_matin:part2.actions_samedi_matin||[],
       top_screener_ct:part2.top_screener_ct||[],
@@ -466,8 +469,8 @@ async function generateDeskComment(portfolio) {
     if(DATA){DATA.analysis=DATA.analysis||{};DATA.analysis.actions_samedi_matin=desk.actions_samedi_matin;DATA.analysis.top_screener_ct=desk.top_screener_ct;DATA.analysis.top_screener_lt=desk.top_screener_lt;if(desk.orientation_marche)DATA.analysis.orientation_marche=desk.orientation_marche;if(desk.niveau_risque)DATA.analysis.niveau_risque=desk.niveau_risque;renderOpps();}
     renderActionsPrioritaires(desk.actions_samedi_matin);
     const today_iso=new Date().toISOString().slice(0,10);
-    await saveDeskEntry({date:today_iso,total_eur:portfolio.total_value_eur,resume:desk.resume,contexte_macro:desk.contexte_macro,alertes:desk.alertes,actions_samedi_matin:desk.actions_samedi_matin,top_screener_ct:desk.top_screener_ct,top_screener_lt:desk.top_screener_lt,recos_ct:desk.recos_ct,recos_mt:desk.recos_mt,recos_lt:desk.recos_lt,suivi_preco:desk.suivi_preco,generated_at:new Date().toISOString()});
-        toast('Analyse complete');
+    await saveDeskEntry({date:today_iso,total_eur:portfolio.total_value_eur,resume:desk.resume,contexte_macro:desk.contexte_macro,alertes:desk.alertes,analyse_critique:desk.analyse_critique,actions_samedi_matin:desk.actions_samedi_matin,top_screener_ct:desk.top_screener_ct,top_screener_lt:desk.top_screener_lt,recos_ct:desk.recos_ct,recos_mt:desk.recos_mt,recos_lt:desk.recos_lt,suivi_preco:desk.suivi_preco,generated_at:new Date().toISOString()});
+    toast('Analyse complete');
 
   }catch(e){
     deskBox.innerHTML='<div style="color:#A32D2D;font-size:13px;padding:10px">Erreur : '+e.message+'<br><span style="font-size:12px;color:#888">Voir la console pour le detail.</span></div>';
@@ -500,7 +503,7 @@ function renderAchats(achats) {
   if (!box) return;
   if (!achats || !achats.length) { box.style.display = 'none'; return; }
   box.style.display = 'block';
-  const brokerLabel = b => b === 'boursorama' ? 'PEA Boursorama' : b === 'interactive_brokers' ? 'IB CTO' : b === 'linxea' ? 'Linxea PER' : b;
+  const brokerLabel = b => b === 'boursorama_pea' ? 'PEA Boursorama' : b === 'boursorama_cto' ? 'CTO Boursorama' : b === 'boursorama' ? 'Boursorama' : b === 'interactive_brokers' ? 'IB CTO' : b === 'linxea' ? 'Linxea PER' : b;
   let html = achats.map(a => `<div class="achat-row">
     <span class="achat-badge ${a.type==='NOUVEAU'?'achat-badge-new':'achat-badge-renf'}">${a.type==='NOUVEAU'?'NOUVEAU':'RENFORCEMENT'}</span>
     <div style="flex:1">
@@ -526,10 +529,12 @@ function renderEvolution() {
   }
 
   // Calculer les totaux par broker par date
-  const brokers = ['boursorama', 'interactive_brokers', 'linxea'];
+  const brokers = ['boursorama_pea', 'boursorama_cto', 'interactive_brokers', 'degiro', 'linxea'];
   const brokerColors = {
-    boursorama: { border: '#185FA5', bg: 'rgba(24,95,165,0.15)', label: 'Boursorama PEA' },
-    interactive_brokers: { border: '#065040', bg: 'rgba(6,80,64,0.15)', label: 'Interactive Brokers CTO' },
+    boursorama_pea: { border: '#185FA5', bg: 'rgba(24,95,165,0.15)', label: 'Boursorama PEA' },
+    boursorama_cto: { border: '#3C3489', bg: 'rgba(60,52,137,0.15)', label: 'Boursorama CTO' },
+    interactive_brokers: { border: '#065040', bg: 'rgba(6,80,64,0.15)', label: 'Interactive Brokers' },
+    degiro: { border: '#A32D2D', bg: 'rgba(163,45,45,0.15)', label: 'DeGiro' },
     linxea: { border: '#854F0B', bg: 'rgba(133,79,11,0.15)', label: 'Linxea PER' },
     total: { border: '#1a1a1a', bg: 'rgba(26,26,26,0.1)', label: 'Total portefeuille' }
   };
@@ -543,7 +548,7 @@ function renderEvolution() {
 
   dates.forEach(date => {
     const snap = h[date]?.snap || {};
-    let totals = { boursorama: 0, interactive_brokers: 0, linxea: 0 };
+    let totals = { boursorama_pea: 0, boursorama_cto: 0, interactive_brokers: 0, degiro: 0, linxea: 0 };
     for (const [key, val] of Object.entries(snap)) {
       const broker = key.split('|')[0];
       if (totals[broker] !== undefined) totals[broker] += val.value_eur || 0;
@@ -691,7 +696,8 @@ function renderDeskComment(desk) {
   if (!deskBox) return;
 
   let html = `<div style="font-size:13px;color:#555;line-height:1.8;margin-bottom:12px"><strong style="color:#1a1a1a">${desk.resume || ''}</strong></div>`;
-  if (desk.contexte_macro) html += `<div style="font-size:13px;color:#666;line-height:1.8">${desk.contexte_macro}</div>`;
+  if (desk.contexte_macro) html += `<div style="font-size:13px;color:#666;line-height:1.8;margin-bottom:10px">${desk.contexte_macro}</div>`;
+  if (desk.analyse_critique) html += `<div style="background:#f8f4e8;border-left:3px solid #854F0B;border-radius:6px;padding:10px 14px;margin-bottom:10px"><div style="font-size:11px;font-weight:500;color:#854F0B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">🔭 Analyse critique — vision non-consensuelle</div><div style="font-size:13px;color:#555;line-height:1.7">${desk.analyse_critique}</div></div>`;
   deskBox.innerHTML = html;
 
   if (desk.alertes && desk.alertes.length && recoBox) {
@@ -787,7 +793,7 @@ const fN = (v,d=1) => v==null?'—':Number(v).toLocaleString('fr-FR',{maximumFra
 const fE = v => { if(v==null)return'—'; const s=v>=0?'+':''; const c=v>=0?'pos':'neg'; return `<span class="${c}">${s}${Math.round(v).toLocaleString('fr-FR')}€</span>`; };
 const fP = v => { if(v==null)return'—'; const s=v>=0?'+':''; const c=v>=0?'pos':'neg'; return `<span class="${c}">${s}${fN(v)}%</span>`; };
 const badge = (t,c='bg-gray') => `<span class="badge ${c}">${t}</span>`;
-const brokerBadge = b => { const m={boursorama:['bg-blue','Boursorama'],interactive_brokers:['bg-green','IB'],linxea:['bg-amber','Linxea']}; const [cls,lbl]=m[b]||['bg-gray',b||'?']; return badge(lbl,cls); };
+const brokerBadge = b => { const m={boursorama_pea:['bg-blue','PEA'],boursorama_cto:['bg-purple','CTO BSO'],boursorama:['bg-blue','Boursorama'],interactive_brokers:['bg-green','IB'],linxea:['bg-amber','Linxea'],degiro:['bg-teal','DeGiro']}; const [cls,lbl]=m[b]||['bg-gray',b||'?']; return badge(lbl,cls); };
 const actionBadge = t => { const m={ACHAT_CT:'bg-green',ACHAT_LT:'bg-teal',VENTE:'bg-red',ALLEGER:'bg-amber',SHORT:'bg-purple',SURVEILLER:'bg-blue',HEDGER:'bg-purple'}; return badge(t,m[t]||'bg-gray'); };
 function toast(msg) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3500); }
 function showTab(id,btn) {
@@ -1032,7 +1038,6 @@ async function loadData() {
     updateTopbar();
     await renderSamedi();
     renderOpps();
-    renderMacro();
     renderPtf();
   } catch(e) {
     document.getElementById('samedi-content').innerHTML =
@@ -1183,11 +1188,13 @@ function filterBroker(broker,btn){brokerFilter=broker;document.querySelectorAll(
 
 function renderMacro() {
   if (!DATA) return;
+  const el = document.getElementById('macro-content');
+  if (!el) return; // section macro supprimée
   const macro=DATA.macro||{};
   let html=`<div class="macro-grid">`;
   const hasMacro = Object.values(macro).some(v=>v.price);
   if(!hasMacro){
-    html+=`<div style="grid-column:1/-1;color:#888;font-size:13px;padding:10px 0">Les données macro sont récupérées lors de la génération du commentaire du desk. Cliquez sur "↻ Regénérer" pour les actualiser.</div>`;
+    html+=`<div style="grid-column:1/-1;color:#888;font-size:13px;padding:10px 0">Les données macro sont récupérées lors de la génération du commentaire du desk.</div>`;
   }
   for(const[name,vals]of Object.entries(macro)){
     if(!vals.price)continue;
@@ -1195,14 +1202,7 @@ function renderMacro() {
     html+=`<div class="macro-item"><div class="macro-lbl">${name}</div><div class="macro-val">${fN(vals.price,isEur?4:2)}</div><div class="macro-chg ${chg>=0?'pos':'neg'}">${chg>=0?'+':''}${fN(chg)}% sem.</div></div>`;
   }
   html+=`</div>`;
-  const drivers=(DATA.analysis||{}).macro_drivers||[];
-  if(drivers.length){
-    const dc={POSITIF:'bg-green',NEGATIF:'bg-red',NEUTRE:'bg-gray'};
-    html+=`<div class="card"><div class="card-hd">Drivers macro</div>`;
-    drivers.forEach(d=>{html+=`<div class="driver-row">${badge(d.impact||'?',dc[d.impact]||'bg-gray')} <div><strong style="font-size:13px">${d.facteur||''}</strong><span style="color:#888;font-size:12px"> — ${d.detail||''}</span></div></div>`;});
-    html+=`</div>`;
-  }
-  document.getElementById('macro-content').innerHTML=html;
+  el.innerHTML=html;
 }
 
 let histSortCol = 'vchg', histSortDir = -1;
@@ -1341,10 +1341,21 @@ async function handleFiles(files) {
     const fn=file.name.toLowerCase();
     if(ext==='csv'){
       const text=await file.text();
-      if(fn.includes('export-positions')||fn.includes('boursorama')){
-        const pos=parseBoursorama(text); allPositions=allPositions.concat(pos); log(`Boursorama: ${pos.length} positions`);
+      if(fn.includes('portfolio')){
+        // DeGiro
+        const pos=parseIB(text);
+        pos.forEach(p=>p.broker='degiro');
+        if(pos.length){allPositions=allPositions.concat(pos);log(`DeGiro: ${pos.length} positions`);}
+      } else if(fn.includes('export-positions')||fn.includes('boursorama')){
+        const pos=parseBoursorama(text);
+        // PEA si le nom contient "pea", sinon CTO
+        const broker = fn.includes('pea') ? 'boursorama_pea' : 'boursorama_cto';
+        pos.forEach(p=>p.broker=broker);
+        allPositions=allPositions.concat(pos);
+        log(`Boursorama ${broker==='boursorama_pea'?'PEA':'CTO'}: ${pos.length} positions`);
       } else {
-        const pos=parseIB(text); if(pos.length){allPositions=allPositions.concat(pos);log(`IB: ${pos.length} positions`);}
+        const pos=parseIB(text);
+        if(pos.length){allPositions=allPositions.concat(pos);log(`IB: ${pos.length} positions`);}
       }
     } else if(ext==='xlsx'||ext==='xls'){
       const ab=await file.arrayBuffer();
@@ -1440,7 +1451,7 @@ async function handleFiles(files) {
     <span style="font-weight:400;font-size:12px;color:#888">${withChg} variations calculées${withChg===0?' (premier import)':''}</span>
   </div>`;
 
-  updateTopbar(); renderOpps(); renderMacro(); renderPtf();
+  updateTopbar(); renderOpps(); renderPtf();
 
   fill.style.width='100%';
   setTimeout(() => { prog.style.display='none'; }, 500);
